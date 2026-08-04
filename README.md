@@ -22,7 +22,7 @@ Designed for weddings, conferences, family reunions, or weekend retreats where d
 ---
 
 ## 🛠 Architecture Overview
-
+```text
 ┌──────────────────────┐          GET / POST          ┌──────────────────────────┐
 │                      │ ───────────────────────────> │                          │
 │  Static Frontend     │                              │ Google Apps Script API   │
@@ -37,9 +37,7 @@ Reads / Writes
 │   Google Sheets Database │
 │ (Config, Events, Guests) │
 └──────────────────────────┘
-
-
----
+```
 
 ## 🚀 Quick Start & Setup Guide
 
@@ -134,7 +132,7 @@ In any empty cell in your Google Sheet, type:
 This auto-populates a real-time tracking table with Event Name, Invited, Attending, and Not Responded counts.
 
 ## 📁 Repository Structure
-
+```text
 ├── backend/
 │   └── Code.gs              # Apps Script backend API & email engine
 ├── frontend/
@@ -142,6 +140,7 @@ This auto-populates a real-time tracking table with Event Name, Invited, Attendi
 │   ├── config.js            # Configuration file for Web App URL & cover image
 │   └── config.js.template   # Template configuration file
 └── README.md                # Documentation
+```
 
 ## 📄 License
 Distributed under the GNU General Public License v3.0 (GPL-3.0). See LICENSE for details.
