@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You're Invited!</title>
+  <script src="config.js" onerror="console.log('No config.js found')"></script>
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --accent: #4a90e2;
+      --bg: #f8f9fa;
+      --card-bg: #ffffff;
+      --text: #333333;
+      --success: #2e7d32;
+      --error: #c62828;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 650px;
+      margin: 40px auto;
+      background: var(--card-bg);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      overflow: hidden; /* Ensures rounded corners clip cover image */
+    }
+
+    /* Cover Image Styling (Supports Portrait & Landscape) */
+    .cover-image-container {
+    margin: -30px -30px 25px -30px; /* Bleeds to edge of card container */
+    max-height: 500px; /* Increased height capacity for portrait photos */
+    background-color: #f1f5f9; /* Subtle background fill behind portrait edges */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    border-bottom: 1px solid #e2e8f0;
+    }
+
+    .cover-image-container img {
+    width: 100%;
+    max-height: 500px;
+    object-fit: contain; /* Displays full image without cropping portrait photos */
+    display: block;
+    }
+
+    /* Hero Banner Styling */
+    .hero-header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #edf2f7;
+    }
+
+    .hero-header h1 {
+      color: var(--primary);
+      margin-bottom: 5px;
+      font-size: 2em;
+    }
+
+    .hero-dates {
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 1.1em;
+      margin-bottom: 15px;
+    }
+
+    .hero-message {
+      font-size: 0.95em;
+      color: #555;
+      max-width: 550px;
+      margin: 0 auto;
+      text-align: left;
+    }
+
+    .hidden { display: none !important; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-weight: 600; }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover { background-color: #357abd; }
+    button:disabled { background-color: #a0c4ff; cursor: not-allowed; }
+
+    .btn-secondary {
+      background-color: #e2e8f0;
+      color: #2c3e50;
+      padding: 8px 14px;
+      font-size: 0.85em;
+      border-radius: 4px;
+      width: auto;
+      margin-top: 10px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { background-color: #cbd5e1; }
+
+    .event-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 25px;
+      background-color: #fafafa;
+    }
+
+    .event-card h3 { text-align: left; margin-top: 0; margin-bottom: 8px; color: var(--accent); }
+    .event-meta { font-size: 0.9em; color: #666; margin-bottom: 12px; }
+    .event-desc { font-size: 0.95em; margin-bottom: 15px; }
+
+    .event-status-toggle {
+      display: flex;
+      gap: 20px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      margin-bottom: 15px;
+    }
+
+    .event-status-toggle label {
+      cursor: pointer;
+      font-size: 1.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .guest-checkbox-list {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 10px;
+    }
+
+    .guest-checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+    }
+    
+    .plus-one-input {
+      margin-left: 30px;
+      margin-top: 5px;
+      width: calc(100% - 40px);
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.95em;
+      box-sizing: border-box;
+      transition: opacity 0.3s;
+    }
+
+    .guest-checkbox-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .error-card {
+      background: #fff5f5;
+      border: 1px solid #feb2b2;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      color: #9b2c2c;
+    }
+
+    #toast-notification {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--primary);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.4s, visibility 0.4s, bottom 0.4s;
+    }
+    #toast-notification.show {
+      opacity: 1;
+      visibility: visible;
+      bottom: 40px;
+    }
+
+    .spinner { text-align: center; font-weight: bold; color: #666; padding: 20px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- COVER IMAGE CONTAINER -->
+    <div id="cover-image-container" class="cover-image-container hidden">
+      <img id="cover-image" src="" alt="Event Cover">
+    </div>
+
+    <!-- DYNAMIC HERO BANNER -->
+    <div id="header-banner" class="hero-header">
+      <h1 id="banner-title">You're Invited!</h1>
+      <div id="banner-dates" class="hero-dates hidden"></div>
+      <div id="banner-message" class="hero-message hidden"></div>
+    </div>
+    
+    <!-- LOADING STATE -->
+    <div id="loading-state" class="spinner">
+      Loading your invitation details...
+    </div>
+
+    <!-- ERROR STATE -->
+    <div id="error-state" class="error-card hidden">
+      <h3 style="margin-top:0; color: var(--error);" id="error-title">Invitation Not Found</h3>
+      <p id="error-message">Please open the personalized RSVP link provided in your email invitation or contact the host.</p>
+    </div>
+
+    <!-- DYNAMIC RSVP FORM -->
+    <div id="rsvp-state" class="hidden">
+      <h2 id="welcomeHeader" style="text-align: center; color: var(--primary);">Welcome!</h2>
+      <p style="text-align: center; color: #666;">Please specify your attendance for each event below:</p>
+      
+      <form id="dynamicRsvpForm">
+        <div id="eventsContainer"></div>
+
+        <div class="form-group">
+          <label for="notesInput">Dietary Restrictions or Special Notes:</label>
+          <textarea id="notesInput" rows="3"></textarea>
+        </div>
+
+        <button type="button" id="submitBtn" onclick="submitRSVP()">Submit Response</button>
+        <div id="submitSpinner" class="spinner hidden">Saving your response...</div>
+      </form>
+    </div>
+
+    <!-- CONFIRMATION STATE -->
+    <div id="thankyou-state" class="hidden" style="text-align: center;">
+      <h2 id="thankyou-title" style="color: var(--success);">Thank You!</h2>
+      <p>Your group RSVP has been successfully recorded. A confirmation email has been sent.</p>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast-notification"></div>
+  </div>
+
+  <script>
+    const DEFAULT_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE"; 
+    const SCRIPT_URL = (typeof CONFIG !== "undefined" && CONFIG.scriptUrl) ? CONFIG.scriptUrl : DEFAULT_SCRIPT_URL;
+
+    let groupData = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadCoverImage();
+      initDirectLookup();
+    });
+
+    function loadCoverImage() {
+      if (typeof CONFIG !== "undefined" && CONFIG.coverImageUrl && CONFIG.coverImageUrl.trim() !== "") {
+        const coverImg = document.getElementById("cover-image");
+        coverImg.src = CONFIG.coverImageUrl;
+        document.getElementById("cover-image-container").classList.remove("hidden");
+      }
+    }
+
+    async function initDirectLookup() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const groupId = urlParams.get('id') || urlParams.get('groupId');
+
+      if (!groupId || !groupId.trim()) {
+        showError("Missing Group Code", "Please use the personalized link sent in your email invitation or contact the host for assistance.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(groupId.trim())}`);
+        const data = await response.json();
+
+        // Render global text from Config tab
+        if (data.config) {
+          renderHeaderConfig(data.config);
+        }
+
+        if (!data.found) {
+          showError("Invalid Invitation Link", "We couldn't find an invitation matching that code. Please contact the host.");
+          return;
+        }
+
+        groupData = data;
+        renderEventsForm(data);
+
+      } catch (err) {
+        console.error(err);
+        showError("Connection Error", "There was an error loading your invitation. Please refresh the page.");
+      }
+    }
+
+    function renderHeaderConfig(cfg) {
+      if (cfg.event_title) {
+        document.getElementById("banner-title").innerText = cfg.event_title;
+        document.title = cfg.event_title;
+      }
+      if (cfg.event_dates) {
+        const datesEl = document.getElementById("banner-dates");
+        datesEl.innerText = cfg.event_dates;
+        datesEl.classList.remove("hidden");
+      }
+      if (cfg.host_message) {
+        const msgEl = document.getElementById("banner-message");
+        msgEl.innerHTML = cfg.host_message;
+        msgEl.classList.remove("hidden");
+      }
+      if (cfg.thank_you_title) {
+        const thankyouEl = document.getElementById("thankyou-title");
+        thankyouEl.innerText = cfg.thank_you_title;
+      }
+    }
+
+    function showError(title, message) {
+      document.getElementById("loading-state").classList.add("hidden");
+      document.getElementById("error-title").innerText = title;
+      document.getElementById("error-message").innerText = message;
+      document.getElementById("error-state").classList.remove("hidden");
+    }
+
+    function renderEventsForm(data) {
+      document.getElementById("loading-state").classList.add("hidden");
+      document.getElementById("rsvp-state").classList.remove("hidden");
+      
+      const names = data.guests.map(g => g.fullName);
+      const formattedNames = formatNameList(names);
+      document.getElementById("welcomeHeader").innerText = `Invitation for ${formattedNames}`;
+
+      if (data.groupNotes) {
+        document.getElementById("notesInput").value = data.groupNotes;
+      }
+
+      const container = document.getElementById("eventsContainer");
+      container.innerHTML = "";
+
+      // Determine how many events this group is actually invited to.
+      const visibleEventIds = [];
+      for (const evtId in data.eventsMap) {
+        const isInvited = data.guests.some(g => 
+          g.allowedEvents.some(e => e.id === evtId)
+        );
+        if (isInvited) {
+          visibleEventIds.push(evtId);
+        }
+      }
+
+      const allEvents = data.eventsMap;
+      let isFirstEvent = true;
+
+      for (const evtId in allEvents) {
+        const evt = allEvents[evtId];
+        
+        const invitedGuests = data.guests.filter(g => 
+          g.allowedEvents.some(e => e.id === evtId)
+        );
+
+        if (invitedGuests.length === 0) continue;
+
+        const hasExistingAttending = invitedGuests.some(g => g.existingRsvps && g.existingRsvps[evtId] === 'Attending');
+        const hasExistingDecline = invitedGuests.every(g => g.existingRsvps && g.existingRsvps[evtId] === 'Decline');
+
+        let initialStatus = null;
+        if (hasExistingAttending) initialStatus = 'Attending';
+        else if (hasExistingDecline) initialStatus = 'Decline';
+
+        const card = document.createElement("div");
+        card.className = "event-card";
+        card.setAttribute("data-event-id", evtId);
+
+        let checkboxesHtml = "";
+        invitedGuests.forEach(guest => {
+          const isChecked = guest.existingRsvps && guest.existingRsvps[evtId] === 'Decline' ? false : true;
+
+          checkboxesHtml += `
+            <div class="guest-checkbox-item">
+              <input type="checkbox" 
+                     id="chk_${evtId}_${guest.guestId}" 
+                     class="guest-chk guest-chk-${evtId}" 
+                     data-guest-id="${guest.guestId}" 
+                     ${isChecked ? 'checked' : ''}>
+              <label for="chk_${evtId}_${guest.guestId}" style="flex-grow: 1;"><span>${guest.fullName}</span></label>
+            </div>
+          `;
+
+          if (guest.isPlusOne) {
+            checkboxesHtml += `
+              <input type="text" 
+                     id="plus_one_name_input_${evtId}" 
+                     class="plus-one-input" 
+                     placeholder="Guest's Full Name" 
+                     style="opacity: ${isChecked ? '1' : '0.5'};"
+                     ${!isChecked ? 'disabled' : ''}>
+            `;
+          }
+        });
+
+        card.innerHTML = `
+          <h3>${evt.title}</h3>
+          <div class="event-meta">
+            ${evt.dateTime ? `<strong>When:</strong> ${formatEventDate(evt.dateTime)}<br>` : ''}
+            ${evt.location ? `<strong>Where:</strong> ${evt.location}` : ''}
+          </div>
+          ${evt.description ? `<p class="event-desc">${evt.description}</p>` : ''}
+          
+          <div class="event-status-toggle">
+            <label>
+              <input type="radio" name="evt_status_${evtId}" value="Attending" ${initialStatus === 'Attending' ? 'checked' : ''} onchange="toggleEventGuests('${evtId}', true)" required>
+              Will Attend
+            </label>
+            <label>
+              <input type="radio" name="evt_status_${evtId}" value="Decline" ${initialStatus === 'Decline' ? 'checked' : ''} onchange="toggleEventGuests('${evtId}', false)">
+              Declining Event
+            </label>
+          </div>
+
+          ${invitedGuests.length > 1 ? `
+            <div id="guests_box_${evtId}" class="guest-checkbox-list ${initialStatus !== 'Attending' ? 'hidden' : ''}">
+              <p style="margin-top: 0; font-size: 0.9em; color: #555;">Who will be attending?</p>
+              ${checkboxesHtml}
+              ${isFirstEvent && visibleEventIds.length > 1 ? `<button type="button" class="btn-secondary" onclick="copyFirstEventSelections('${evtId}')">📋 Copy guest choices to all other events</button>` : ''}
+            </div>
+          ` : ''}
+        `;
+
+        container.appendChild(card);
+        isFirstEvent = false;
+      }
+
+      // Add event listeners for plus-one checkboxes
+      document.querySelectorAll('.guest-chk').forEach(chk => {
+        const guest = groupData.guests.find(g => g.guestId === chk.dataset.guestId);
+        if (guest && guest.isPlusOne) {
+          chk.addEventListener('change', (e) => {
+            const eventId = e.target.closest('.event-card').dataset.eventId;
+            handlePlusOneCheckbox(e.target.checked, eventId);
+          });
+        }
+      });
+    }
+
+    /**
+     * Formats an array of names into a natural language string.
+     * e.g., ["A", "B", "C"] -> "A, B, and C"
+     * @param {string[]} names The array of names.
+     * @returns {string} The formatted string.
+     */
+    function formatNameList(names) {
+      if (!names || names.length === 0) return "";
+      if (names.length === 1) return names[0];
+      if (names.length === 2) return names.join(" and ");
+      const last = names.pop();
+      return `${names.join(", ")}, and ${last}`;
+    }
+
+    /**
+     * Formats a date string into a more readable format.
+     * e.g., "2024-10-31T18:30:00" -> "Thursday, Oct 31st @ 6:30 PM"
+     * @param {string} dateString The date string to format.
+     * @returns {string} The formatted date string.
+     */
+    function formatEventDate(dateString) {
+      if (!dateString) return "";
+      
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString; // Return original string if it's not a valid date
+      }
+
+      const getOrdinal = (n) => {
+        const s = ["th", "st", "nd", "rd"];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+      };
+
+      const dayOfWeek = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date);
+      const month = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date);
+      const day = getOrdinal(date.getDate());
+      
+      let hours = date.getHours();
+      const minutes = date.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // Hour '0' should be '12'
+      const minutesPadded = minutes < 10 ? '0' + minutes : minutes;
+
+      const timeString = `${hours}:${minutesPadded} ${ampm}`;
+
+      // Handle cases where time is midnight (e.g., date only)
+      return timeString === '12:00 AM' ? `${dayOfWeek}, ${month} ${day}` : `${dayOfWeek}, ${month} ${day} @ ${timeString}`;
+    }
+
+    function handlePlusOneCheckbox(isChecked, eventId) {
+      const nameInput = document.getElementById(`plus_one_name_input_${eventId}`);
+      if (!nameInput) return;
+      if (isChecked) {
+        nameInput.disabled = false;
+        nameInput.style.opacity = '1';
+      } else {
+        nameInput.disabled = true;
+        nameInput.style.opacity = '0.5';
+      }
+    }
+
+    function toggleEventGuests(evtId, isAttending) {
+      const box = document.getElementById(`guests_box_${evtId}`);
+      if (isAttending) {
+        box.classList.remove("hidden");
+        document.querySelectorAll(`.guest-chk-${evtId}`).forEach(chk => chk.checked = true);
+      } else {
+        box.classList.add("hidden");
+        document.querySelectorAll(`.guest-chk-${evtId}`).forEach(chk => chk.checked = false);
+      }
+
+      // Also handle the plus one input field if it exists
+      const plusOneCheckbox = document.querySelector(`.guest-chk-${evtId}[id*="_plusone"]`);
+      if (plusOneCheckbox) {
+        handlePlusOneCheckbox(plusOneCheckbox.checked, evtId);
+      }
+    }
+
+    function copyFirstEventSelections(sourceEvtId) {
+      const selectedRadio = document.querySelector(`input[name="evt_status_${sourceEvtId}"]:checked`);
+      if (!selectedRadio) {
+        alert("Please select your attendance for the first event first.");
+        return;
+      }
+
+      const sourceStatus = selectedRadio.value;
+      const sourceGuestStates = {};
+      document.querySelectorAll(`.guest-chk-${sourceEvtId}`).forEach(chk => {
+        sourceGuestStates[chk.getAttribute("data-guest-id")] = chk.checked;
+      });
+
+      let plusOneName = "";
+      const sourcePlusOneInput = document.getElementById(`plus_one_name_input_${sourceEvtId}`);
+      if (sourcePlusOneInput && !sourcePlusOneInput.disabled) {
+        plusOneName = sourcePlusOneInput.value;
+      }
+
+      document.querySelectorAll(".event-card").forEach(card => {
+        const targetEvtId = card.getAttribute("data-event-id");
+        if (targetEvtId === sourceEvtId) return;
+
+        const targetRadio = card.querySelector(`input[name="evt_status_${targetEvtId}"][value="${sourceStatus}"]`);
+        if (targetRadio) {
+          targetRadio.checked = true;
+          toggleEventGuests(targetEvtId, sourceStatus === 'Attending');
+        }
+
+        if (sourceStatus === 'Attending') {
+          document.querySelectorAll(`.guest-chk-${targetEvtId}`).forEach(chk => {
+            const guestId = chk.getAttribute("data-guest-id");
+            if (sourceGuestStates[guestId] !== undefined) {
+              chk.checked = sourceGuestStates[guestId];
+            }
+          });
+
+          const targetPlusOneInput = document.getElementById(`plus_one_name_input_${targetEvtId}`);
+          if (targetPlusOneInput && !targetPlusOneInput.disabled) {
+            targetPlusOneInput.value = plusOneName;
+          }
+
+        }
+      });
+
+      showToast("Copied guest choices across all events!");
+    }
+
+    /**
+     * Displays a temporary toast notification at the bottom of the screen.
+     * @param {string} message The message to display.
+     */
+    function showToast(message) {
+      const toast = document.getElementById("toast-notification");
+      if (!toast) return;
+      
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => { toast.classList.remove("show"); }, 3000); // Hide after 3 seconds
+    }
+
+    async function submitRSVP() {
+      const form = document.getElementById("dynamicRsvpForm");
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      const guestResponses = groupData.guests.map(guest => {
+        const rsvps = {};
+        
+        guest.allowedEvents.forEach(evt => {
+          const eventStatusRadio = document.querySelector(`input[name="evt_status_${evt.id}"]:checked`);
+          const isEventAttending = eventStatusRadio ? eventStatusRadio.value === "Attending" : false;
+          
+          if (!isEventAttending) {
+            rsvps[evt.id] = "Decline";
+          } else {
+            const invitedGuestsForEvent = groupData.guests.filter(g => g.allowedEvents.some(e => e.id === evt.id));
+            
+            if (invitedGuestsForEvent.length === 1) {
+              rsvps[evt.id] = "Attending"; // For single-guest events, "Will Attend" means they are attending.
+            } else {
+              const guestCheckbox = document.getElementById(`chk_${evt.id}_${guest.guestId}`);
+              rsvps[evt.id] = (guestCheckbox && guestCheckbox.checked) ? "Attending" : "Decline";
+            }
+          }
+        });
+
+        return {
+          row: guest.row,
+          isPlusOne: guest.isPlusOne || false,
+          guestId: guest.guestId,
+          fullName: guest.fullName,
+          rsvps: rsvps
+        };
+      });
+
+      let plusOneName = "";
+      const plusOneInput = document.querySelector(".plus-one-input:not([disabled])");
+      const plusOneGuest = groupData.guests.find(g => g.isPlusOne);
+      if (plusOneInput && !plusOneInput.disabled && plusOneGuest) {
+        plusOneName = plusOneInput.value.trim();
+      }
+
+      const payload = {
+        groupId: groupData.groupId,
+        guestResponses: guestResponses,
+        notes: document.getElementById("notesInput").value
+      };
+
+      if (plusOneName) {
+        payload.plusOneName = plusOneName;
+      }
+
+      document.getElementById("submitBtn").disabled = true;
+      document.getElementById("submitSpinner").classList.remove("hidden");
+
+      try {
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        document.getElementById("rsvp-state").classList.add("hidden");
+        document.getElementById("thankyou-state").classList.remove("hidden");
+
+      } catch (err) {
+        console.error(err);
+        alert("An error occurred while saving your RSVP. Please try again.");
+        document.getElementById("submitBtn").disabled = false;
+      } finally {
+        document.getElementById("submitSpinner").classList.add("hidden");
+      }
+    }
+  </script>
+</body>
+</html>
