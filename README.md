@@ -6,6 +6,12 @@ Designed for weddings, conferences, family reunions, or weekend retreats where d
 
 ---
 
+## 💡 Project Story
+
+This project was born out of a real-world need. When planning a family celebration, I explored various online invitation and RSVP services but found them to be either too expensive or overly complex for what I needed. Since I already had my own domain, I decided to build a simple, flexible, and free solution myself. This framework is the result—a lightweight system that leverages the power of Google's free tools to create a fully functional RSVP system that anyone can host and manage.
+
+---
+
 ## ✨ Key Features
 
 - **Multi-Event Access Control:** Assign different events to different guests (e.g., Rehearsal Dinner for VIPs only, Main Reception for all guests).
