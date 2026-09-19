@@ -16,7 +16,7 @@ This project was born out of a real-world need. When planning a family celebrati
 
 - **Multi-Event Access Control:** Assign different events to different guests (e.g., Rehearsal Dinner for VIPs only, Main Reception for all guests).
 - **Group & Household Bundling:** Unique URL parameters (`?id=GRP-101`) load all members of a family/group onto a single page so one person can RSVP for the entire party.
-- **Dynamic "Plus One" Support:** Automatically handle +1 guests and allow recipients to submit their guest's full name.
+- **Flexible Additional Guest Support:** Allow primary guests to bring a specified number of additional guests (e.g., +1, +2), and collect their names during RSVP.
 - **Google Sheets Backend:** Manage your guest list, events, and configurations inside Google Sheets.
 - **Automated Email Engine:**
   - Send custom HTML invitations with personalized RSVP links directly from Apps Script.
@@ -55,7 +55,7 @@ Reads / Writes
 3. Your sheet contains three primary tabs:
    - **`Config`**: Global settings (`event_title`, `event_dates`, `host_message`, `email_salutation`, `email_signature`, etc.).
    - **`Events`**: List of sub-events (`Event_ID`, `Title`, `Date_Time`, `Location`, `Description`, `Duration_Minutes`).
-   - **`Guests`**: Guest database (`Guest_ID`, `Group_ID`, `Full_Name`, `Email`, `Allowed_Events`, `Plus_One_Allowed`, `RSVPs`, `Notes`, `Invite_Sent`).
+   - **`Guests`**: Guest database (`Guest_ID`, `Group_ID`, `Full_Name`, `Email`, `Allowed_Events`, `Additional_Guests`, `RSVPs`, `Notes`, `Invite_Sent`).
 
 ---
 

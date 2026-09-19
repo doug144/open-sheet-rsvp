@@ -1,20 +1,3 @@
-/**
- * @license
- * Copyright 2024 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may not use a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 // =================================================================
 // SCRIPT CONFIGURATION
 // =================================================================
@@ -66,6 +49,7 @@ function doGet(e) {
     var guestsList = sheetToObjects(guestsSheet);
     var eventsList = sheetToObjects(eventsSheet);
     var globalConfig = getGlobalConfig(ss);
+    delete globalConfig.admin_password; // Remove sensitive data before sending to client
 
     var groupGuests = guestsList.filter(function(guest) {
       return guest.Group_ID && guest.Group_ID.toString().toLowerCase().trim() === searchGroupId;
@@ -75,8 +59,20 @@ function doGet(e) {
       return createJsonResponse({ found: false, config: globalConfig });
     }
 
+    // 1. Find all unique event IDs this group is invited to.
+    var allInvitedEventIds = {}; // Using an object as a set for efficient lookups.
+    groupGuests.forEach(function(guest) {
+      (guest.Allowed_Events || "").split(',').forEach(function(id) {
+        var trimmedId = id.trim();
+        if (trimmedId) {
+          allInvitedEventIds[trimmedId] = true;
+        }
+      });
+    });
+
+    // 2. Build the eventsMap containing ONLY the events the group is invited to.
     var eventsMap = eventsList.reduce(function(map, event) {
-      if (event.Event_ID) {
+      if (event.Event_ID && allInvitedEventIds[event.Event_ID]) {
         map[event.Event_ID] = {
           id: event.Event_ID,
           title: event.Title,
@@ -89,21 +85,23 @@ function doGet(e) {
     }, {});
 
     var responseGuests = groupGuests.map(function(guest) {
-      var allowedEvents = (guest.Allowed_Events || "").split(',').map(function(id) {
-        return eventsMap[id.trim()];
-      }).filter(Boolean);
+      var allowedEventIds = (guest.Allowed_Events || "").split(',').map(function(id) {
+        return id.trim();
+      }).filter(id => id && eventsMap[id]); // Ensure IDs are valid and exist in the events map
 
       var existingRsvps = {};
       try {
         existingRsvps = JSON.parse(guest.RSVPs || '{}');
       } catch (e) {}
 
+      var additionalGuests = parseInt(guest.Additional_Guests, 10);
       return {
         row: guest.rowIndex,
         guestId: guest.Guest_ID,
         fullName: guest.Full_Name,
         isPlusOne: guest.Is_Plus_One === true || guest.Is_Plus_One === 'TRUE',
-        allowedEvents: allowedEvents,
+        additionalGuestsAllowed: !isNaN(additionalGuests) ? additionalGuests : 0,
+        allowedEventIds: allowedEventIds,
         existingRsvps: existingRsvps
       };
     });
@@ -187,8 +185,8 @@ function doPost(e) {
         }
 
         // Update Plus One name if provided
-        if (response.isPlusOne && payload.plusOneName && fullNameCol !== -1) {
-          guestsSheet.getRange(sheetRowIndex, fullNameCol + 1).setValue(payload.plusOneName);
+        if (response.isPlusOne && response.plusOneName && fullNameCol !== -1) {
+          guestsSheet.getRange(sheetRowIndex, fullNameCol + 1).setValue(response.plusOneName);
         }
 
         // Find primary guest email for confirmation

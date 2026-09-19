@@ -4,16 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>You're Invited!</title>
+  <!-- Removed Google Font for Cherry Bomb One -->
   <script src="config.js" onerror="console.log('No config.js found')"></script>
   <style>
     :root {
+      /* Default Theme */
       --primary: #2c3e50;
       --accent: #4a90e2;
       --bg: #f8f9fa;
       --card-bg: #ffffff;
       --text: #333333;
       --success: #2e7d32;
+      --image-bg: #f1f5f9; /* Subtle background for portrait image edges */
       --error: #c62828;
+      --fireworks-bg: #050814;
+    }
+
+    [data-theme="lavender"] {
+      --primary: #6A5ACD; /* SlateBlue */
+      --accent: #9370DB; /* MediumPurple */
+      --bg: #F3E5F5; /* A very light purple */
+      --card-bg: #ffffff;
+      --text: #333333;
+      --success: #4CAF50; /* A softer green */
+      --image-bg: #D8BFD8; /* Thistle - a more distinct purple */
+      --error: #c62828;
+      --fireworks-bg: #1a1423; /* A dark purple for the lavender theme */
     }
 
     body {
@@ -21,6 +37,7 @@
       background-color: var(--bg);
       color: var(--text);
       line-height: 1.6;
+      position: relative; /* Needed for fireworks container positioning */
       margin: 0;
       padding: 20px;
     }
@@ -32,14 +49,15 @@
       padding: 30px;
       border-radius: 12px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      position: relative; /* Keep content above the background animation */
       overflow: hidden; /* Ensures rounded corners clip cover image */
     }
 
     /* Cover Image Styling (Supports Portrait & Landscape) */
     .cover-image-container {
     margin: -30px -30px 25px -30px; /* Bleeds to edge of card container */
-    max-height: 500px; /* Increased height capacity for portrait photos */
-    background-color: #f1f5f9; /* Subtle background fill behind portrait edges */
+    max-height: 500px;
+    background-color: var(--image-bg);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -50,9 +68,38 @@
     .cover-image-container img {
     width: 100%;
     max-height: 500px;
-    object-fit: contain; /* Displays full image without cropping portrait photos */
+    object-fit: cover; /* Zooms image to fill container, cropping if needed */
     display: block;
     }
+
+    /* Animation for header text */
+    @keyframes bounce-in {
+      0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.8);
+      }
+      60% {
+        opacity: 1;
+        transform: translateY(-10px) scale(1.05);
+      }
+      80% {
+        transform: translateY(5px) scale(0.95);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .hero-header > * {
+      opacity: 0; 
+      animation: bounce-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+
+    /* Stagger the animations for a cascading effect */
+    .hero-header h1 { animation-delay: 0.2s; }
+    .hero-header .hero-dates { animation-delay: 0.4s; }
+    .hero-header .hero-message { animation-delay: 0.6s; }
 
     /* Hero Banner Styling */
     .hero-header {
@@ -65,7 +112,8 @@
     .hero-header h1 {
       color: var(--primary);
       margin-bottom: 5px;
-      font-size: 2em;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      font-size: 2.2em; /* Adjusted size for the new font */
     }
 
     .hero-dates {
@@ -131,6 +179,8 @@
       padding: 20px;
       margin-bottom: 25px;
       background-color: #fafafa;
+      opacity: 0; /* Start hidden for animation */
+      animation: bounce-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
     }
 
     .event-card h3 { text-align: left; margin-top: 0; margin-bottom: 8px; color: var(--accent); }
@@ -210,6 +260,7 @@
       visibility: hidden;
       transition: opacity 0.4s, visibility 0.4s, bottom 0.4s;
     }
+
     #toast-notification.show {
       opacity: 1;
       visibility: visible;
@@ -217,6 +268,15 @@
     }
 
     .spinner { text-align: center; font-weight: bold; color: #666; padding: 20px; }
+
+    #fireworks-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -10; /* Behind all content */
+    }
   </style>
 </head>
 <body>
@@ -267,12 +327,14 @@
     <!-- CONFIRMATION STATE -->
     <div id="thankyou-state" class="hidden" style="text-align: center;">
       <h2 id="thankyou-title" style="color: var(--success);">Thank You!</h2>
-      <p>Your group RSVP has been successfully recorded. A confirmation email has been sent.</p>
+      <p>Your RSVP has been successfully recorded. A confirmation email has been sent.</p>
     </div>
 
     <!-- TOAST NOTIFICATION -->
     <div id="toast-notification"></div>
   </div>
+
+  <canvas id="fireworks-canvas"></canvas>
 
   <script>
     const DEFAULT_SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE"; 
@@ -281,8 +343,10 @@
     let groupData = null;
 
     document.addEventListener("DOMContentLoaded", () => {
+      applyTheme();
       loadCoverImage();
       initDirectLookup();
+      startFireworks(); // Start the animation on page load
     });
 
     function loadCoverImage() {
@@ -290,6 +354,12 @@
         const coverImg = document.getElementById("cover-image");
         coverImg.src = CONFIG.coverImageUrl;
         document.getElementById("cover-image-container").classList.remove("hidden");
+      }
+    }
+
+    function applyTheme() {
+      if (typeof CONFIG !== "undefined" && CONFIG.theme) {
+        document.documentElement.setAttribute('data-theme', CONFIG.theme.toLowerCase());
       }
     }
 
@@ -354,13 +424,65 @@
     }
 
     function renderEventsForm(data) {
+      // --- DYNAMIC GUEST HANDLING (NEW LOGIC) ---
+      // Create a new list of all guests, including dynamic ones from existing RSVPs or allowances.
+      const allGuests = [];
+      let dynamicGuestCounter = 0;
+
+      // This logic reconstructs the guest list based on saved RSVPs or allowances.
+      data.guests.forEach(primaryGuest => {
+        allGuests.push(primaryGuest); // Add the primary guest
+
+        let additionalGuestsForThisPrimary = [];
+        const firstEventId = primaryGuest.allowedEventIds[0];
+
+        // Check if there are existing additional guests in the RSVP JSON
+        if (primaryGuest.existingRsvps && primaryGuest.existingRsvps[firstEventId] && Array.isArray(primaryGuest.existingRsvps[firstEventId].additionalGuests)) {
+          additionalGuestsForThisPrimary = primaryGuest.existingRsvps[firstEventId].additionalGuests;
+        }
+
+        // If no existing guests, create placeholders based on the allowance
+        if (additionalGuestsForThisPrimary.length === 0 && primaryGuest.additionalGuestsAllowed > 0 && primaryGuest.existingRsvps[firstEventId]?.status !== 'Decline') {
+          for (let i = 0; i < primaryGuest.additionalGuestsAllowed; i++) {
+            additionalGuestsForThisPrimary.push({ name: 'Guest', status: 'Attending' }); // Default to attending
+          }
+        }
+
+        additionalGuestsForThisPrimary.forEach(ag => {
+          const dynamicGuestId = `dynamic_${dynamicGuestCounter++}`;
+          allGuests.push({
+            guestId: dynamicGuestId,
+            fullName: 'Guest', // Always display "Guest" as the label
+            isPlusOne: true,
+            savedName: ag.name || 'Guest', // Store the actual name separately
+            primaryGuestRow: primaryGuest.row, // Link back to the primary guest
+            allowedEventIds: primaryGuest.allowedEventIds, // Inherit allowed events
+            existingRsvps: {} // This will be populated per-event later
+          });
+        });
+      });
+
+      // Replace original guests with the new comprehensive list
+      data.guests = allGuests;
+
       document.getElementById("loading-state").classList.add("hidden");
       document.getElementById("rsvp-state").classList.remove("hidden");
       
-      const names = data.guests.map(g => g.fullName);
-      const formattedNames = formatNameList(names);
-      document.getElementById("welcomeHeader").innerText = `Invitation for ${formattedNames}`;
+      // Separate primary guests from plus-ones for the welcome message
+      const primaryGuests = data.guests.filter(g => !g.isPlusOne && g.row); // Original guests have a row
+      const plusOneCount = data.guests.filter(g => g.isPlusOne).length;
 
+      const primaryGuestNames = primaryGuests.map(g => g.fullName);
+      const formattedNames = formatNameList(primaryGuestNames);
+
+      let welcomeMessage = `Invitation for ${formattedNames}`;
+      if (plusOneCount > 0) {
+        const guestWord = plusOneCount === 1 ? 'guest' : 'guests';
+        welcomeMessage += ` and ${plusOneCount} ${guestWord}`;
+      }
+
+      document.getElementById("welcomeHeader").innerText = welcomeMessage;
+      
       if (data.groupNotes) {
         document.getElementById("notesInput").value = data.groupNotes;
       }
@@ -371,8 +493,8 @@
       // Determine how many events this group is actually invited to.
       const visibleEventIds = [];
       for (const evtId in data.eventsMap) {
-        const isInvited = data.guests.some(g => 
-          g.allowedEvents.some(e => e.id === evtId)
+        const isInvited = data.guests.some(g =>
+          g.allowedEventIds.includes(evtId)
         );
         if (isInvited) {
           visibleEventIds.push(evtId);
@@ -381,38 +503,76 @@
 
       const allEvents = data.eventsMap;
       let isFirstEvent = true;
+      let visibleEventIndex = 0;
+      const headerAnimationDuration = 0.6; // Corresponds to the last header element's delay
 
       for (const evtId in allEvents) {
         const evt = allEvents[evtId];
-        
-        const invitedGuests = data.guests.filter(g => 
-          g.allowedEvents.some(e => e.id === evtId)
+
+        const invitedGuests = data.guests.filter(g =>
+          g.allowedEventIds.includes(evtId)
         );
+
+        // Sort guests to show primary guests first, then additional guests.
+        invitedGuests.sort((a, b) => {
+          // a is additional, b is primary -> b comes first
+          if (a.isPlusOne && !b.isPlusOne) return 1;
+          // a is primary, b is additional -> a comes first
+          if (!a.isPlusOne && b.isPlusOne) return -1;
+          // both are same type, maintain relative order or sort by name/id if desired
+          return 0;
+        });
 
         if (invitedGuests.length === 0) continue;
 
-        const hasExistingAttending = invitedGuests.some(g => g.existingRsvps && g.existingRsvps[evtId] === 'Attending');
-        const hasExistingDecline = invitedGuests.every(g => g.existingRsvps && g.existingRsvps[evtId] === 'Decline');
+        // Determine initial status based on the primary guest's RSVP for this event
+        const primaryGuestForEvent = invitedGuests.find(g => !g.isPlusOne);
+        let eventRsvpData = {};
+        if (primaryGuestForEvent && primaryGuestForEvent.existingRsvps && primaryGuestForEvent.existingRsvps[evtId]) {
+          eventRsvpData = primaryGuestForEvent.existingRsvps[evtId];
+        }
+
+        const hasExistingAttending = eventRsvpData.status === 'Attending';
+        const hasExistingDecline = eventRsvpData.status === 'Decline';
 
         let initialStatus = null;
         if (hasExistingAttending) initialStatus = 'Attending';
         else if (hasExistingDecline) initialStatus = 'Decline';
 
+        // Populate existing RSVPs for dynamic guests for this specific event
+        if (hasExistingAttending && eventRsvpData.additionalGuests) {
+          invitedGuests.filter(g => g.isPlusOne).forEach((dynGuest, index) => {
+            // Find the matching dynamic guest by name if possible, otherwise by index
+            const savedGuest = eventRsvpData.additionalGuests.find(ag => ag.name === dynGuest.fullName) || eventRsvpData.additionalGuests[index];
+            if (savedGuest) {
+              dynGuest.existingRsvps[evtId] = savedGuest.status;
+            }
+          });
+        }
+
         const card = document.createElement("div");
         card.className = "event-card";
         card.setAttribute("data-event-id", evtId);
+        card.style.animationDelay = `${headerAnimationDuration + (visibleEventIndex * 0.2)}s`;
 
         let checkboxesHtml = "";
         invitedGuests.forEach(guest => {
-          const isChecked = guest.existingRsvps && guest.existingRsvps[evtId] === 'Decline' ? false : true;
+          let isChecked = true; // Default to checked if attending
+          // For plus-ones, their status is stored per event. For primary, it's based on the event's main status.
+          if (guest.isPlusOne) {
+            isChecked = guest.existingRsvps[evtId] !== 'Decline';
+          } else { 
+            isChecked = eventRsvpData.status !== 'Decline';
+          }
 
           checkboxesHtml += `
             <div class="guest-checkbox-item">
-              <input type="checkbox" 
-                     id="chk_${evtId}_${guest.guestId}" 
-                     class="guest-chk guest-chk-${evtId}" 
-                     data-guest-id="${guest.guestId}" 
-                     ${isChecked ? 'checked' : ''}>
+              <input 
+                type="checkbox" 
+                id="chk_${evtId}_${guest.guestId}" 
+                class="guest-chk guest-chk-${evtId}" 
+                data-guest-id="${guest.guestId}" 
+                ${isChecked ? 'checked' : ''} >
               <label for="chk_${evtId}_${guest.guestId}" style="flex-grow: 1;"><span>${guest.fullName}</span></label>
             </div>
           `;
@@ -420,8 +580,8 @@
           if (guest.isPlusOne) {
             checkboxesHtml += `
               <input type="text" 
-                     id="plus_one_name_input_${evtId}" 
-                     class="plus-one-input" 
+                     id="plus_one_name_input_${evtId}_${guest.guestId}" 
+                     class="plus-one-input plus-one-input-${evtId}" 
                      placeholder="Guest's Full Name" 
                      style="opacity: ${isChecked ? '1' : '0.5'};"
                      ${!isChecked ? 'disabled' : ''}>
@@ -459,7 +619,16 @@
 
         container.appendChild(card);
         isFirstEvent = false;
+        visibleEventIndex++;
       }
+
+      // After all cards are in the DOM, pre-fill the plus-one names
+      data.guests.forEach(guest => {
+        if (guest.isPlusOne && guest.savedName && guest.savedName !== 'Guest') {
+          const nameInputs = document.querySelectorAll(`.plus-one-input[id$='_${guest.guestId}']`);
+          nameInputs.forEach(input => input.value = guest.savedName);
+        }
+      });
 
       // Add event listeners for plus-one checkboxes
       document.querySelectorAll('.guest-chk').forEach(chk => {
@@ -467,7 +636,7 @@
         if (guest && guest.isPlusOne) {
           chk.addEventListener('change', (e) => {
             const eventId = e.target.closest('.event-card').dataset.eventId;
-            handlePlusOneCheckbox(e.target.checked, eventId);
+            handlePlusOneCheckbox(e.target.checked, eventId, guest.guestId);
           });
         }
       });
@@ -524,8 +693,8 @@
       return timeString === '12:00 AM' ? `${dayOfWeek}, ${month} ${day}` : `${dayOfWeek}, ${month} ${day} @ ${timeString}`;
     }
 
-    function handlePlusOneCheckbox(isChecked, eventId) {
-      const nameInput = document.getElementById(`plus_one_name_input_${eventId}`);
+    function handlePlusOneCheckbox(isChecked, eventId, guestId) {
+      const nameInput = document.getElementById(`plus_one_name_input_${eventId}_${guestId}`);
       if (!nameInput) return;
       if (isChecked) {
         nameInput.disabled = false;
@@ -547,10 +716,12 @@
       }
 
       // Also handle the plus one input field if it exists
-      const plusOneCheckbox = document.querySelector(`.guest-chk-${evtId}[id*="_plusone"]`);
-      if (plusOneCheckbox) {
-        handlePlusOneCheckbox(plusOneCheckbox.checked, evtId);
-      }
+      const plusOneCheckboxes = document.querySelectorAll(`.guest-chk-${evtId}`);
+      plusOneCheckboxes.forEach(chk => {
+        const guest = groupData.guests.find(g => g.guestId == chk.dataset.guestId);
+        if (guest && guest.isPlusOne)
+          handlePlusOneCheckbox(chk.checked, evtId, guest.guestId);
+      })
     }
 
     function copyFirstEventSelections(sourceEvtId) {
@@ -566,11 +737,11 @@
         sourceGuestStates[chk.getAttribute("data-guest-id")] = chk.checked;
       });
 
-      let plusOneName = "";
-      const sourcePlusOneInput = document.getElementById(`plus_one_name_input_${sourceEvtId}`);
-      if (sourcePlusOneInput && !sourcePlusOneInput.disabled) {
-        plusOneName = sourcePlusOneInput.value;
-      }
+      const sourcePlusOneInputs = document.querySelectorAll(`.plus-one-input-${sourceEvtId}`);
+      const plusOneNames = {}; // Store as { guestId: name }
+      sourcePlusOneInputs.forEach(input => {
+        plusOneNames[input.id.split('_').pop()] = input.value;
+      });
 
       document.querySelectorAll(".event-card").forEach(card => {
         const targetEvtId = card.getAttribute("data-event-id");
@@ -590,16 +761,17 @@
             }
           });
 
-          const targetPlusOneInput = document.getElementById(`plus_one_name_input_${targetEvtId}`);
-          if (targetPlusOneInput && !targetPlusOneInput.disabled) {
-            targetPlusOneInput.value = plusOneName;
-          }
-
+          const targetPlusOneInputs = document.querySelectorAll(`.plus-one-input-${targetEvtId}`);
+          targetPlusOneInputs.forEach(input => {
+            const guestId = input.id.split('_').pop();
+            if (plusOneNames[guestId] !== undefined) input.value = plusOneNames[guestId];
+          });
         }
       });
 
       showToast("Copied guest choices across all events!");
     }
+
 
     /**
      * Displays a temporary toast notification at the bottom of the screen.
@@ -621,72 +793,274 @@
         return;
       }
 
-      const guestResponses = groupData.guests.map(guest => {
+      document.getElementById("submitBtn").disabled = true;
+      document.getElementById("submitSpinner").classList.remove("hidden");
+
+      // Filter for original guests who have a row in the sheet
+      const originalGuests = groupData.guests.filter(g => g.row);
+
+      const guestResponses = originalGuests.map(primaryGuest => {
         const rsvps = {};
         
-        guest.allowedEvents.forEach(evt => {
-          const eventStatusRadio = document.querySelector(`input[name="evt_status_${evt.id}"]:checked`);
+        primaryGuest.allowedEventIds.forEach(evtId => {
+          const eventStatusRadio = document.querySelector(`input[name="evt_status_${evtId}"]:checked`);
           const isEventAttending = eventStatusRadio ? eventStatusRadio.value === "Attending" : false;
           
-          if (!isEventAttending) {
-            rsvps[evt.id] = "Decline";
-          } else {
-            const invitedGuestsForEvent = groupData.guests.filter(g => g.allowedEvents.some(e => e.id === evt.id));
-            
-            if (invitedGuestsForEvent.length === 1) {
-              rsvps[evt.id] = "Attending"; // For single-guest events, "Will Attend" means they are attending.
-            } else {
-              const guestCheckbox = document.getElementById(`chk_${evt.id}_${guest.guestId}`);
-              rsvps[evt.id] = (guestCheckbox && guestCheckbox.checked) ? "Attending" : "Decline";
-            }
+          // Find all dynamic guests associated with this primary guest
+          const additionalGuestsForPrimary = groupData.guests.filter(g => g.isPlusOne && g.primaryGuestRow === primaryGuest.row);
+
+          const rsvpObject = {
+            status: isEventAttending ? "Attending" : "Decline",
+            additionalGuests: []
+          };
+
+          if (isEventAttending) {
+            additionalGuestsForPrimary.forEach(addGuest => {
+              // Check if this additional guest is invited to this specific event
+              if (addGuest.allowedEventIds.includes(evtId)) {
+                const nameInput = document.getElementById(`plus_one_name_input_${evtId}_${addGuest.guestId}`);
+                const checkbox = document.getElementById(`chk_${evtId}_${addGuest.guestId}`);
+
+                rsvpObject.additionalGuests.push({
+                  name: nameInput ? nameInput.value.trim() : 'Guest',
+                  status: checkbox && checkbox.checked ? 'Attending' : 'Decline'
+                });
+              }
+            });
           }
+          
+          rsvps[evtId] = rsvpObject;
         });
 
         return {
-          row: guest.row,
-          isPlusOne: guest.isPlusOne || false,
-          guestId: guest.guestId,
-          fullName: guest.fullName,
+          row: primaryGuest.row,
           rsvps: rsvps
         };
       });
 
-      let plusOneName = "";
-      const plusOneInput = document.querySelector(".plus-one-input:not([disabled])");
-      const plusOneGuest = groupData.guests.find(g => g.isPlusOne);
-      if (plusOneInput && !plusOneInput.disabled && plusOneGuest) {
-        plusOneName = plusOneInput.value.trim();
-      }
-
       const payload = {
         groupId: groupData.groupId,
         guestResponses: guestResponses,
-        notes: document.getElementById("notesInput").value
+        notes: document.getElementById("notesInput").value.trim()
       };
-
-      if (plusOneName) {
-        payload.plusOneName = plusOneName;
-      }
-
-      document.getElementById("submitBtn").disabled = true;
-      document.getElementById("submitSpinner").classList.remove("hidden");
 
       try {
         await fetch(SCRIPT_URL, {
           method: "POST",
+          // Apps Script requires a string body, not a direct JSON object
           body: JSON.stringify(payload)
         });
 
         document.getElementById("rsvp-state").classList.add("hidden");
         document.getElementById("thankyou-state").classList.remove("hidden");
-
       } catch (err) {
         console.error(err);
         alert("An error occurred while saving your RSVP. Please try again.");
         document.getElementById("submitBtn").disabled = false;
+        document.getElementById("submitSpinner").classList.add("hidden");
       } finally {
         document.getElementById("submitSpinner").classList.add("hidden");
       }
+    }
+  </script>
+
+  <!-- Fireworks Animation Script -->
+  <script>
+    let fireworksActive = false;
+
+    function startFireworks() {
+      if (fireworksActive) return;
+      fireworksActive = true;
+
+      const canvas = document.getElementById('fireworks-canvas');
+      const ctx = canvas.getContext('2d');
+
+      let width, height;
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      let colors;
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+
+      if (currentTheme === 'lavender') {
+        // A palette that contrasts well with the light purple background
+        colors = [
+          '#8A2BE2', // BlueViolet
+          '#DA70D6', // Orchid
+          '#9400D3', // DarkViolet
+          '#FF1493', // DeepPink
+          '#BA55D3', // MediumOrchid
+          '#4B0082'  // Indigo
+        ];
+      } else {
+        colors = ['#FFD700', '#E0E0E0', '#1E90FF', '#00BFFF', '#00FFFF', '#4169E1'];
+      }
+
+      function getRandomColor() {
+        return colors[Math.floor(Math.random() * colors.length)];
+      }
+
+      function getStarOfDavidCoordinates(numPointsPerSide = 12, radius = 100) {
+        const points = [];
+        const angles = [-Math.PI / 2, Math.PI / 2];
+        
+        angles.forEach((startAngle) => {
+          const triPoints = [];
+          for (let i = 0; i < 3; i++) {
+            const angle = startAngle + (i * 2 * Math.PI / 3);
+            triPoints.push({ x: radius * Math.cos(angle), y: radius * Math.sin(angle) });
+          }
+          for (let i = 0; i < 3; i++) {
+            const p1 = triPoints[i];
+            const p2 = triPoints[(i + 1) % 3];
+            for (let j = 0; j < numPointsPerSide; j++) {
+              const t = j / numPointsPerSide;
+              points.push({ x: p1.x + t * (p2.x - p1.x), y: p1.y + t * (p2.y - p1.y) });
+            }
+          }
+        });
+        return points;
+      }
+
+      class Particle {
+        constructor(x, y, targetX, targetY, color) {
+          this.x = x;
+          this.y = y;
+          this.color = color;
+          const angle = Math.atan2(targetY, targetX);
+          const distance = Math.hypot(targetX, targetY);
+          const speed = distance * (0.035 + Math.random() * 0.005);
+          this.vx = Math.cos(angle) * speed;
+          this.vy = Math.sin(angle) * speed;
+          this.friction = 0.96;
+          this.gravity = 0.04;
+          this.alpha = 1;
+          this.decay = 0.01 + Math.random() * 0.008;
+          this.size = Math.random() * 2 + 1.5;
+        }
+        update() {
+          this.vx *= this.friction;
+          this.vy *= this.friction;
+          this.vy += this.gravity;
+          this.x += this.vx;
+          this.y += this.vy;
+          this.alpha -= this.decay;
+        }
+        draw() {
+          ctx.save();
+          ctx.globalAlpha = Math.max(this.alpha, 0);
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = this.color;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      class Rocket {
+        constructor(targetX, targetY) {
+          this.x = width / 2 + (Math.random() - 0.5) * (width * 0.4);
+          this.y = height;
+          this.targetX = targetX;
+          this.targetY = targetY;
+          const angle = Math.atan2(targetY - this.y, targetX - this.x);
+          const distance = Math.hypot(targetX - this.x, targetY - this.y);
+          const speed = distance / (35 + Math.random() * 10);
+          this.vx = Math.cos(angle) * speed;
+          this.vy = Math.sin(angle) * speed;
+          this.color = getRandomColor();
+          this.exploded = false;
+          this.particles = [];
+        }
+        update() {
+          if (!this.exploded) {
+            this.x += this.vx;
+            this.y += this.vy;
+            if (this.vy < 0 && this.y <= this.targetY) {
+              this.explode();
+            }
+          } else {
+            for (let i = this.particles.length - 1; i >= 0; i--) {
+              this.particles[i].update();
+              if (this.particles[i].alpha <= 0) {
+                this.particles.splice(i, 1);
+              }
+            }
+          }
+        }
+        explode() {
+          this.exploded = true;
+          const scale = 70 + Math.random() * 50;
+          const starPoints = getStarOfDavidCoordinates(10, scale);
+          starPoints.forEach(pt => {
+            this.particles.push(new Particle(this.x, this.y, pt.x, pt.y, this.color));
+          });
+          for (let i = 0; i < 20; i++) {
+            const randAngle = Math.random() * Math.PI * 2;
+            const randDist = Math.random() * (scale * 0.4);
+            this.particles.push(new Particle(this.x, this.y, Math.cos(randAngle) * randDist, Math.sin(randAngle) * randDist, '#FFFFFF'));
+          }
+        }
+        draw() {
+          if (!this.exploded) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = this.color;
+            ctx.fill();
+            ctx.restore();
+          } else {
+            this.particles.forEach(p => p.draw());
+          }
+        }
+      }
+
+      const fireworks = [];
+      function launchFirework() {
+        // Launch fireworks only on the left and right sides of the screen
+        const side = Math.random() > 0.5 ? 'left' : 'right';
+        const contentWidth = 750; // Approx width of .container + padding
+        const sideMargin = (width - contentWidth) / 2;
+
+        // Ensure fireworks don't launch too close to the edge or content
+        const launchableWidth = Math.max(sideMargin - 100, 50);
+        
+        const targetX = side === 'left' ? Math.random() * launchableWidth : (width - launchableWidth) + (Math.random() * launchableWidth);
+        const targetY = height * 0.15 + Math.random() * (height * 0.5);
+        fireworks.push(new Rocket(targetX, targetY));
+      }
+
+      let frameCount = 0;
+      function animate() {
+        // Clear the canvas to make it transparent, showing the page background
+        ctx.clearRect(0, 0, width, height);
+
+        frameCount++;
+        if (frameCount % 45 === 0) { 
+          launchFirework();
+        }
+
+        for (let i = fireworks.length - 1; i >= 0; i--) {
+          fireworks[i].update();
+          fireworks[i].draw();
+          if (fireworks[i].exploded && fireworks[i].particles.length === 0) {
+            fireworks.splice(i, 1);
+          }
+        }
+        requestAnimationFrame(animate);
+      }
+
+      launchFirework();
+      animate();
     }
   </script>
 </body>

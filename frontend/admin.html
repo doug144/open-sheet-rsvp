@@ -364,18 +364,53 @@
                     for (const eventId in eventsSummary) {
                         if (allowedEventsStr.includes(eventId)) {
                             if (group.hasResponded) {
-                                const attendees = [];
+                                const attendeeNames = new Set();
+                                let peopleInRsvp = 0;
+
                                 group.guests.forEach(guest => {
                                     try {
-                                        const rsvps = JSON.parse(guest.RSVPs || '{}');
-                                        if (rsvps[eventId] === 'Attending') {
-                                            attendees.push(guest.Full_Name);
+                                        const rsvps = JSON.parse(guest.RSVPs);
+                                        const eventRsvp = rsvps[eventId];
+
+                                        if (eventRsvp) {
+                                            peopleInRsvp++; // The named guest
+                                            if (eventRsvp.status === 'Attending') {
+                                                attendeeNames.add(guest.Full_Name);
+                                            }
+
+                                            if (eventRsvp.additionalGuests && Array.isArray(eventRsvp.additionalGuests)) {
+                                                peopleInRsvp += eventRsvp.additionalGuests.length;
+                                                eventRsvp.additionalGuests.forEach(ag => {
+                                                    if (ag.status === 'Attending' && ag.name && ag.name.trim()) {
+                                                        attendeeNames.add(ag.name.trim());
+                                                    }
+                                                });
+                                            }
                                         }
-                                    } catch (e) {}
+                                    } catch (e) {
+                                        console.error(`Could not parse RSVPs for guest ${guest.Full_Name}:`, guest.RSVPs, e);
+                                    }
                                 });
-                                eventsSummary[eventId].respondedGroups.push({ ...group, attendees });
+
+                                const attendeesArray = Array.from(attendeeNames);
+                                const attendingCount = attendeesArray.length;
+                                const decliningCount = peopleInRsvp - attendingCount;
+
+                                eventsSummary[eventId].respondedGroups.push({ 
+                                    ...group, 
+                                    attendees: attendeesArray,
+                                    attendingCount: attendingCount,
+                                    decliningCount: decliningCount
+                                });
                             } else {
-                                eventsSummary[eventId].notRespondedGroups.push(group);
+                                let potentialInvitees = 0;
+                                group.guests.forEach(guest => {
+                                    potentialInvitees += 1 + (parseInt(guest.Additional_Guests, 10) || 0);
+                                });
+                                eventsSummary[eventId].notRespondedGroups.push({
+                                    ...group,
+                                    noResponseCount: potentialInvitees
+                                });
                             }
                         }
                     }
@@ -470,9 +505,9 @@
                 `;
 
                 // Chart 2: People Status
-                const attendingCount = event.respondedGroups.reduce((sum, group) => sum + group.attendees.length, 0);
-                const declinedCount = event.respondedGroups.reduce((sum, group) => sum + (group.guests.length - group.attendees.length), 0);
-                const noResponseCount = event.notRespondedGroups.reduce((sum, group) => sum + group.guests.length, 0);
+                const attendingCount = event.respondedGroups.reduce((sum, group) => sum + (group.attendingCount || 0), 0);
+                const declinedCount = event.respondedGroups.reduce((sum, group) => sum + (group.decliningCount || 0), 0);
+                const noResponseCount = event.notRespondedGroups.reduce((sum, group) => sum + (group.noResponseCount || 0), 0);
                 const totalPeople = attendingCount + declinedCount + noResponseCount;
 
                 const attendingPercent = totalPeople > 0 ? (attendingCount / totalPeople) * 100 : 0;
