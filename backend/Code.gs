@@ -1,601 +1,423 @@
 /**
- * Dynamic Group-Based Multi-Event RSVP Backend with Email Engine
- * Uses Script Properties for environment configuration.
+ * @license
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may not use a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
+// =================================================================
+// SCRIPT CONFIGURATION
+// =================================================================
+
 /**
- * Retrieves environment properties configured under Project Settings -> Script Properties
+ * Retrieves script properties. It's recommended to set these in the Apps Script editor:
+ * File > Project Properties > Script Properties.
+ *
+ * @property {string} websiteUrl - The full URL to your deployed web app's index.html.
+ * @property {boolean} sendEmails - 'true' to enable sending confirmation/reminder emails.
+ * @returns {Object} The script configuration properties.
  */
 function getScriptConfig() {
   var props = PropertiesService.getScriptProperties();
   return {
-    websiteUrl: props.getProperty("WEBSITE_URL") || "https://example.com",
-    adminEmail: props.getProperty("ADMIN_EMAIL") || "",
-    sendEmails: props.getProperty("SEND_EMAILS") === "true"
+    websiteUrl: props.getProperty('WEBSITE_URL') || ScriptApp.getService().getUrl(),
+    sendEmails: props.getProperty('SEND_EMAILS') === 'true'
   };
 }
 
-/**
- * Helper to convert sheet rows into array of objects with 1-based row numbers
- */
-function sheetToObjects(sheet) {
-  var data = sheet.getDataRange().getValues();
-  if (data.length < 2) return [];
-  
-  var headers = data[0].map(function(h) { return h.toString().trim(); });
-  var result = [];
-  
-  for (var i = 1; i < data.length; i++) {
-    var obj = { _row: i + 1 };
-    for (var j = 0; j < headers.length; j++) {
-      obj[headers[j]] = data[i][j];
-    }
-    result.push(obj);
-  }
-  return result;
-}
+// =================================================================
+// WEB APP ENTRY POINTS (doGet, doPost)
+// =================================================================
 
 /**
- * Loads key-value pairs from the 'Config' sheet.
- * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss The active spreadsheet.
- * @returns {Object} An object containing the configuration key-value pairs.
- */
-function getGlobalConfig(ss) {
-  var configSheet = ss.getSheetByName("Config");
-  var globalConfig = {};
-  if (configSheet) {
-    var configData = configSheet.getDataRange().getValues();
-    for (var c = 1; c < configData.length; c++) {
-      var key = configData[c][0] ? configData[c][0].toString().trim() : "";
-      var val = configData[c][1] ? configData[c][1].toString().trim() : "";
-      if (key) globalConfig[key] = val;
-    }
-  }
-  return globalConfig;
-}
-
-/**
- * GET Endpoint: Fetch group details + global page config
+ * Handles GET requests. This is used for the initial lookup of a guest group.
+ * The frontend will call this with a group ID to get invitation details.
+ *
  * Query Params: ?id=GRP-101 (or ?groupId=GRP-101)
  */
 function doGet(e) {
   try {
     var searchGroupId = e.parameter.id || e.parameter.groupId || "";
     searchGroupId = searchGroupId.toString().toLowerCase().trim();
-    
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    // 1. Load Global Config Tab
-    var globalConfig = getGlobalConfig(ss);
-    
-    // 2. Load Events Tab Configuration
+    if (!searchGroupId) {
+      return createJsonResponse({ found: false, error: "No Group ID provided." });
+    }
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var guestsSheet = ss.getSheetByName("Guests");
     var eventsSheet = ss.getSheetByName("Events");
-    if (!eventsSheet) return createJsonResponse({ error: "Sheet 'Events' not found." });
-    
+    var configSheet = ss.getSheetByName("Config");
+
+    if (!guestsSheet || !eventsSheet || !configSheet) {
+      throw new Error("Required sheets ('Guests', 'Events', 'Config') not found.");
+    }
+
+    var guestsList = sheetToObjects(guestsSheet);
     var eventsList = sheetToObjects(eventsSheet);
-    var eventsMap = {};
-    eventsList.forEach(function(evt) {
-      if (evt.Event_ID) {
-        eventsMap[evt.Event_ID.toString().trim()] = {
-          id: evt.Event_ID,
-          title: evt.Title || "",
-          dateTime: evt.Date_Time || "",
-          location: evt.Location || "",
-          description: evt.Description || ""
-        };
-      }
+    var globalConfig = getGlobalConfig(ss);
+
+    var groupGuests = guestsList.filter(function(guest) {
+      return guest.Group_ID && guest.Group_ID.toString().toLowerCase().trim() === searchGroupId;
     });
 
-    // 3. Load Guests matching Group_ID
-    var guestsSheet = ss.getSheetByName("Guests");
-    if (!guestsSheet) return createJsonResponse({ error: "Sheet 'Guests' not found." });
-    
-    var guestsList = sheetToObjects(guestsSheet);
-    var groupGuests = [];
-    var groupNotes = "";
+    if (groupGuests.length === 0) {
+      return createJsonResponse({ found: false, config: globalConfig });
+    }
 
-    for (var i = 0; i < guestsList.length; i++) {
-      var guest = guestsList[i];
-      var groupId = guest.Group_ID ? guest.Group_ID.toString().toLowerCase().trim() : "";
-      
-      if (groupId === searchGroupId && searchGroupId !== "") {
-        var allowedIds = guest.Allowed_Events ? guest.Allowed_Events.toString().split(",") : [];
-        var allowedEvents = [];
-        
-        allowedIds.forEach(function(rawId) {
-          var cleanId = rawId.trim();
-          if (eventsMap[cleanId]) {
-            allowedEvents.push(eventsMap[cleanId]);
-          }
-        });
-
-        var existingRsvps = {};
-        if (guest.RSVPs) {
-          try { existingRsvps = JSON.parse(guest.RSVPs); } catch (err) {}
-        }
-
-        if (guest.Notes && !groupNotes) {
-          groupNotes = guest.Notes;
-        }
-
-        groupGuests.push({
-          row: guest._row,
-          guestId: guest.Guest_ID,
-          fullName: guest.Full_Name || "Guest",
-          email: guest.Email || "",
-          allowedEvents: allowedEvents,
-          existingRsvps: existingRsvps
-        });
-
-        // Check for and create a "Plus One" virtual guest if allowed
-        var plusOneFlag = guest.Plus_One_Allowed ? guest.Plus_One_Allowed.toString().toUpperCase().trim() : "";
-        if (plusOneFlag === "TRUE" || plusOneFlag === "YES" || plusOneFlag === "1") {
-          var plusOneGuestId = guest.Guest_ID + "_plusone";
-          var plusOneRsvps = {};
-          try {
-            // Attempt to parse existing RSVPs for the plus one, if they exist
-            if (guest.RSVPs) plusOneRsvps = JSON.parse(guest.RSVPs)[plusOneGuestId] || {};
-          } catch(err) {}
-
-          groupGuests.push({
-            row: guest._row, // The plus one's data is tied to the primary guest's row
-            guestId: plusOneGuestId,
-            fullName: guest.Full_Name + "'s Guest",
-            isPlusOne: true,
-            allowedEvents: allowedEvents,
-            existingRsvps: plusOneRsvps
-          });
-        }
+    var eventsMap = eventsList.reduce(function(map, event) {
+      if (event.Event_ID) {
+        map[event.Event_ID] = {
+          id: event.Event_ID,
+          title: event.Title,
+          dateTime: event.DateTime,
+          location: event.Location,
+          description: event.Description
+        };
       }
-    }
+      return map;
+    }, {});
 
-    if (groupGuests.length > 0) {
-      return createJsonResponse({
-        found: true,
-        groupId: searchGroupId,
-        config: globalConfig,
-        eventsMap: eventsMap,
-        guests: groupGuests,
-        groupNotes: groupNotes
-      });
-    }
+    var responseGuests = groupGuests.map(function(guest) {
+      var allowedEvents = (guest.Allowed_Events || "").split(',').map(function(id) {
+        return eventsMap[id.trim()];
+      }).filter(Boolean);
 
-    return createJsonResponse({ found: false, config: globalConfig });
+      var existingRsvps = {};
+      try {
+        existingRsvps = JSON.parse(guest.RSVPs || '{}');
+      } catch (e) {}
+
+      return {
+        row: guest.rowIndex,
+        guestId: guest.Guest_ID,
+        fullName: guest.Full_Name,
+        isPlusOne: guest.Is_Plus_One === true || guest.Is_Plus_One === 'TRUE',
+        allowedEvents: allowedEvents,
+        existingRsvps: existingRsvps
+      };
+    });
+
+    var groupNotes = groupGuests[0] ? groupGuests[0].Notes : "";
+
+    var responsePayload = {
+      found: true,
+      groupId: searchGroupId,
+      guests: responseGuests,
+      eventsMap: eventsMap,
+      groupNotes: groupNotes,
+      config: globalConfig
+    };
+
+    return createJsonResponse(responsePayload);
 
   } catch (err) {
-    return createJsonResponse({ error: err.toString() });
+    Logger.log("doGet Error: " + err.message + "\n" + err.stack);
+    return createJsonResponse({ found: false, error: "An internal server error occurred." });
   }
 }
 
 /**
- * POST Endpoint: Updates multiple guest rows in a single batch
+ * Handles POST requests. This is used for submitting RSVPs from the main form
+ * and for all actions from the admin panel.
  */
 function doPost(e) {
   try {
     var payload = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var guestsSheet = ss.getSheetByName("Guests");
+
+    // --- Admin Action Routing ---
+    if (payload.action) {
+      // Public action, no auth needed
+      if (payload.action === 'adminLogin') {
+        var isValid = checkAdminPassword(payload.password);
+        if (isValid) return createJsonResponse({ status: 'success', data: { login: true } });
+        return createJsonResponse({ status: 'unauthorized', error: 'Incorrect password.' });
+      }
+
+      // All other admin actions require authentication
+      if (!payload.auth || !checkAdminPassword(payload.auth.password)) {
+        return createJsonResponse({ status: 'unauthorized', error: 'Authentication failed.' });
+      }
+
+      if (payload.action === 'getDashboard') {
+        return createJsonResponse({ status: 'success', data: getAdminDashboardData() });
+      }
+      if (payload.action === 'sendReminders') {
+        return createJsonResponse({ status: 'success', data: { message: sendReminderEmails(payload.groupIds) } });
+      }
+    }
     
+    // --- RSVP Submission Logic ---
     if (!payload.guestResponses || !Array.isArray(payload.guestResponses)) {
       return createJsonResponse({ result: "error", message: "Invalid payload format." });
     }
 
-    var headers = guestsSheet.getRange(1, 1, 1, guestsSheet.getLastColumn()).getValues()[0];
-    var rsvpsColIndex = -1;
-    var notesColIndex = -1;
-    var nameColIndex = -1;
-    var emailColIndex = -1;
+    var guestData = guestsSheet.getDataRange().getValues();
+    var headers = guestData[0];
+    var rsvpCol = headers.indexOf("RSVPs");
+    var notesCol = headers.indexOf("Notes");
+    var fullNameCol = headers.indexOf("Full_Name");
 
-    for (var j = 0; j < headers.length; j++) {
-      var headerName = headers[j].toString().trim();
-      if (headerName === "RSVPs") rsvpsColIndex = j + 1;
-      if (headerName === "Notes") notesColIndex = j + 1;
-      if (headerName === "Full_Name") nameColIndex = j + 1;
-      if (headerName === "Email") emailColIndex = j + 1;
-    }
-
-    var primaryGuestName = "";
     var primaryGuestEmail = "";
+    var primaryGuestName = "";
 
-    // Save responses for each family member row
-    payload.guestResponses.forEach(function(resp, index) {
-      if (rsvpsColIndex > 0 && resp.rsvps) {
-        // For plus ones, we merge their RSVP into the primary guest's JSON object
-        if (!resp.isPlusOne) {
-          var fullRsvpObject = resp.rsvps;
-          // Find any plus one associated with this guest and merge their rsvp
-          var plusOneResp = payload.guestResponses.find(function(r) { return r.isPlusOne && r.guestId.startsWith(resp.guestId); });
-          if (plusOneResp) {
-            fullRsvpObject[plusOneResp.guestId] = plusOneResp.rsvps;
-          }
-          guestsSheet.getRange(resp.row, rsvpsColIndex).setValue(JSON.stringify(fullRsvpObject));
-        }
-      }
-      if (notesColIndex > 0 && index === 0) {
-        var finalNotes = payload.notes || "";
-        if (payload.plusOneName) {
-          finalNotes += (finalNotes ? "\n" : "") + "Plus One Guest Name: " + payload.plusOneName;
-        }
-        guestsSheet.getRange(resp.row, notesColIndex).setValue(finalNotes);
-      }
+    payload.guestResponses.forEach(function(response) {
+      var rowIndex = response.row;
+      if (rowIndex > 0 && rowIndex <= guestData.length) {
+        var sheetRowIndex = parseInt(rowIndex) + 1; // Convert 0-based to 1-based for sheet
+        
+        // Update RSVPs
+        guestsSheet.getRange(sheetRowIndex, rsvpCol + 1).setValue(JSON.stringify(response.rsvps));
 
-      if (index === 0) {
-        if (nameColIndex > 0) primaryGuestName = guestsSheet.getRange(resp.row, nameColIndex).getValue();
-        if (emailColIndex > 0) primaryGuestEmail = guestsSheet.getRange(resp.row, emailColIndex).getValue();
+        // Update Notes for the entire group (applied to each member)
+        if (notesCol !== -1 && payload.notes !== undefined) {
+          guestsSheet.getRange(sheetRowIndex, notesCol + 1).setValue(payload.notes);
+        }
+
+        // Update Plus One name if provided
+        if (response.isPlusOne && payload.plusOneName && fullNameCol !== -1) {
+          guestsSheet.getRange(sheetRowIndex, fullNameCol + 1).setValue(payload.plusOneName);
+        }
+
+        // Find primary guest email for confirmation
+        var emailCol = headers.indexOf("Email");
+        if (emailCol !== -1 && guestData[rowIndex][emailCol]) {
+          primaryGuestEmail = guestData[rowIndex][emailCol];
+          primaryGuestName = guestData[rowIndex][fullNameCol];
+        }
       }
     });
 
-    var config = getScriptConfig();
-    var eventsSheet = ss.getSheetByName("Events");
-    var eventsList = sheetToObjects(eventsSheet);
+    SpreadsheetApp.flush(); // Ensure all writes are committed
 
-    sendConfirmationEmail(primaryGuestName, primaryGuestEmail, payload.guestResponses, payload.notes, eventsList, config.adminEmail, ss, payload.plusOneName);
+    // Send confirmation email if enabled and email exists
+    var config = getScriptConfig();
+    if (config.sendEmails && primaryGuestEmail) {
+      sendConfirmationEmail(primaryGuestEmail, primaryGuestName, payload);
+    }
 
     return createJsonResponse({ result: "success" });
 
   } catch (err) {
-    return createJsonResponse({ result: "error", message: err.toString() });
+    Logger.log("doPost Error: " + err.message + "\n" + err.stack);
+    return createJsonResponse({ result: "error", message: "An internal server error occurred." });
   }
 }
 
+// =================================================================
+// HELPER & UTILITY FUNCTIONS
+// =================================================================
+
 /**
- * Send Email Invitations to EVERY guest row with a defined Email.
- * Generates personalized ?id=GRP-101 links.
+ * Converts a Google Sheet to an array of objects.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The sheet to convert.
+ * @returns {Array<Object>} An array of objects, where each object represents a row.
  */
-function sendInvitations() {
+function sheetToObjects(sheet) {
+  var data = sheet.getDataRange().getValues();
+  var headers = data.shift().map(function(header) {
+    return String(header || '').replace(/\s+/g, '_'); // Sanitize headers for object keys
+  });
+  return data.map(function(row, index) {
+    var obj = {};
+    headers.forEach(function(header, i) {
+      obj[header] = row[i];
+    });
+    obj.rowIndex = index + 1; // Add 0-based row index for easy lookup
+    return obj;
+  });
+}
+
+/**
+ * Creates a JSON response for the web app.
+ * @param {Object} data The data to be stringified.
+ * @returns {GoogleAppsScript.Content.TextOutput} The JSON response.
+ */
+function createJsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Retrieves key-value pairs from the 'Config' sheet.
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss The active spreadsheet.
+ * @returns {Object} An object containing the configuration.
+ */
+function getGlobalConfig(ss) {
+  var configSheet = ss.getSheetByName("Config");
+  if (!configSheet) return {};
+  var data = configSheet.getDataRange().getValues();
+  return data.reduce(function(obj, row) {
+    if (row[0]) obj[row[0]] = row[1];
+    return obj;
+  }, {});
+}
+
+/**
+ * Sends a confirmation email to the guest after they RSVP.
+ * @param {string} email The recipient's email address.
+ * @param {string} name The recipient's name.
+ * @param {Object} payload The submitted RSVP data.
+ */
+function sendConfirmationEmail(email, name, payload) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var globalConfig = getGlobalConfig(ss);
+    var eventTitle = globalConfig.event_title || "Your Celebration";
+    var emailSignature = globalConfig.email_signature || "The Family";
+
+    var subject = "RSVP Confirmation for " + eventTitle;
+    var htmlBody = 
+      "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;'>" +
+        "<h2 style='color: #2c3e50;'>" + (globalConfig.email_salutation || "Hello") + " " + name + ",</h2>" +
+        "<p>Thank you for your RSVP for <strong>" + eventTitle + "</strong>. Your response has been recorded.</p>" +
+        "<p>If you need to make any changes, please use your original invitation link.</p>" +
+        "<br>" +
+        "<p>" + emailSignature + "</p>" +
+      "</div>";
+
+    MailApp.sendEmail({
+      to: email,
+      subject: subject,
+      htmlBody: htmlBody
+    });
+    Logger.log("Confirmation email sent to " + email);
+  } catch (err) {
+    Logger.log("Failed to send confirmation email to " + email + ". Error: " + err.message);
+  }
+}
+
+// =================================================================
+// ADMIN PANEL FUNCTIONS
+// =================================================================
+
+/**
+ * Checks if the provided password matches the one in the 'Config' sheet.
+ * @param {string} password The password submitted by the user.
+ * @returns {boolean} True if the password is correct.
+ */
+function checkAdminPassword(password) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var globalConfig = getGlobalConfig(ss);
+  var correctPassword = globalConfig.admin_password || "";
+  // Ensure password is not empty and matches
+  return password && correctPassword && password === correctPassword;
+}
+
+/**
+ * Returns the raw data for the admin dashboard. The frontend will process this.
+ * @returns {Object} An object containing raw 'guests' and 'events' data.
+ */
+function getAdminDashboardData() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var guestsSheet = ss.getSheetByName("Guests");
+  var eventsSheet = ss.getSheetByName("Events");
+
+  if (!guestsSheet) throw new Error("Sheet 'Guests' not found.");
+  if (!eventsSheet) throw new Error("Sheet 'Events' not found.");
+
+  var guests = sheetToObjects(guestsSheet);
+  var events = sheetToObjects(eventsSheet);
+
+  return {
+    guests: guests,
+    events: events
+  };
+}
+
+/**
+ * Sends reminder emails to groups who have not yet RSVP'd.
+ * @param {Array<string>} [groupIdsToSend] Optional array of Group IDs to send reminders to. If not provided, sends to all non-responders.
+ * @returns {string} A summary of the action taken.
+ */
+function sendReminderEmails(groupIdsToSend) {
   var config = getScriptConfig();
-  var websiteUrl = config.websiteUrl;
+  if (!config.sendEmails) {
+    var logMsg = "Email sending is disabled in Script Properties. No reminders sent.";
+    Logger.log(logMsg);
+    return logMsg;
+  }
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  // Load Global Config Tab for event title
   var globalConfig = getGlobalConfig(ss);
   var eventTitle = globalConfig.event_title || "Your Celebration";
   var emailSignature = globalConfig.email_signature || "The Family";
+  var websiteUrl = config.websiteUrl;
+
   var guestsSheet = ss.getSheetByName("Guests");
-  if (!guestsSheet) {
-    Logger.log("Error: 'Guests' sheet missing.");
-    return;
-  }
+  if (!guestsSheet) throw new Error("'Guests' sheet not found.");
 
-  var guestsData = guestsSheet.getDataRange().getValues();
-  if (guestsData.length < 2) {
-    Logger.log("No guest data found.");
-    return;
-  }
-
-  var headers = guestsData[0].map(function(h) { return h.toString().trim(); });
+  var guestsList = sheetToObjects(guestsSheet);
   
-  var groupCol = headers.indexOf("Group_ID");
-  var nameCol = headers.indexOf("Full_Name");
-  var emailCol = headers.indexOf("Email");
-  var sentCol = headers.indexOf("Invite_Sent");
+  // Find groups that have not responded at all
+  var groupsToRemind = {}; // { groupId: { name: 'Guest Name', email: 'guest@email.com' } }
 
-  if (groupCol === -1 || emailCol === -1 || nameCol === -1) {
-    Logger.log("Error: 'Group_ID', 'Full_Name', or 'Email' column missing.");
-    return;
-  }
+  guestsList.forEach(function(guest) {
+    var groupId = guest.Group_ID ? guest.Group_ID.toString().trim() : "";
+    var rsvps = guest.RSVPs ? guest.RSVPs.toString().trim() : "";
+    var email = guest.Email ? guest.Email.toString().trim() : "";
 
-  if (sentCol === -1) {
-    sentCol = headers.length;
-    guestsSheet.getRange(1, sentCol + 1).setValue("Invite_Sent");
-  }
+    if (groupId && email) {
+      // If this group isn't already in our list
+      if (!groupsToRemind[groupId]) {
+        groupsToRemind[groupId] = {
+          name: guest.Full_Name || "Guest",
+          email: email,
+          hasResponded: false
+        };
+      }
+      // If any guest in the group has an RSVP, mark the group as responded
+      if (rsvps && rsvps !== "{}") {
+        groupsToRemind[groupId].hasResponded = true;
+      }
+    }
+  });
 
   var countSent = 0;
+  for (var groupId in groupsToRemind) {
+    var groupInfo = groupsToRemind[groupId];
+    
+    // Check if this group should receive a reminder
+    var shouldSend = !groupInfo.hasResponded && 
+                     (!groupIdsToSend || groupIdsToSend.includes(groupId));
 
-  for (var i = 1; i < guestsData.length; i++) {
-    var row = guestsData[i];
-    var groupId = row[groupCol] ? row[groupCol].toString().trim() : "";
-    var guestName = row[nameCol] ? row[nameCol].toString().trim() : "Guest";
-    var guestEmail = row[emailCol] ? row[emailCol].toString().trim() : "";
-    var isSent = (sentCol < row.length) ? row[sentCol].toString().trim().toLowerCase() : "";
-
-    if (groupId !== "" && guestEmail !== "" && isSent !== "yes" && isSent !== "invited") {
-      
-      var personalizedUrl = websiteUrl + "?id=" + encodeURIComponent(groupId);
-      var subject = "You're Invited: " + eventTitle + "!";
-      
-      if (!config.sendEmails) {
-        Logger.log("Email sending disabled. Skipping invitation for " + guestEmail + " (Group ID: " + groupId + ")");
-        continue; // Skip sending email for this guest
-      }
-
+    if (shouldSend) {
+      var personalizedUrl = websiteUrl + (websiteUrl.indexOf('?') === -1 ? '?' : '&') + 'id=' + encodeURIComponent(groupId);
+      var subject = "Reminder: Please RSVP for " + eventTitle;
       var htmlBody = 
         "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;'>" +
-          "<h2 style='color: #2c3e50;'>" + (globalConfig.email_salutation || "Hello") + " " + guestName + ",</h2>" +
-          "<p>You are invited to <strong>" + eventTitle + "</strong>!</p>" +
-          "<p>Please click below to view your family's dynamic invitation and let us know if you can make it:</p>" +
+          "<h2 style='color: #2c3e50;'>" + (globalConfig.email_salutation || "Hello") + " " + groupInfo.name + ",</h2>" +
+          "<p>This is a friendly reminder to RSVP for <strong>" + eventTitle + "</strong>.</p>" +
+          "<p>Please click the link below to let us know if your family can make it. We can't wait to celebrate with you!</p>" +
           "<p style='text-align: center; margin: 30px 0;'>" +
             "<a href='" + personalizedUrl + "' style='background-color: #4a90e2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;'>View Invitation & RSVP</a>" +
-          "</p>" +
-          "<p style='font-size: 0.85em; color: #777; text-align: center;'>" +
-            "Group Code: <strong>" + groupId + "</strong>" +
           "</p>" +
           "<br>" +
           "<p>" + emailSignature + "</p>" +
         "</div>";
 
       MailApp.sendEmail({
-        to: guestEmail,
+        to: groupInfo.email,
         subject: subject,
         htmlBody: htmlBody
       });
-      
-      Logger.log("Sent invitation to " + guestEmail + " for Group ID: " + groupId);
-
-      guestsSheet.getRange(i + 1, sentCol + 1).setValue("Yes");
       countSent++;
-      Utilities.sleep(500); 
+      Logger.log("Sent reminder to " + groupInfo.email + " for Group ID: " + groupId);
+      Utilities.sleep(500); // Pause to avoid exceeding email quotas
     }
   }
 
-  Logger.log("Successfully sent " + countSent + " individual invitation email(s).");
-}
-
-/**
- * Sends event-first HTML confirmation emails to guests, 
- * and a separate concise summary email to the admin.
- */
-function sendConfirmationEmail(primaryName, recipientEmail, guestResponses, notes, eventsList, adminEmail, ss, plusOneName) {
-  var config = getScriptConfig();
-
-  // Load Global Config Tab for event title
-  var globalConfig = getGlobalConfig(ss);
-  var eventTitle = globalConfig.event_title || "Your Celebration";
-  var eventsMap = {};
-  eventsList.forEach(function(evt) { 
-    eventsMap[evt.Event_ID] = evt; 
-  });
-
-  // Map out attendance per sub-event across all family members
-  var eventAttendance = {}; // { evtId: { attending: [names], declined: [names] } }
-
-  guestResponses.forEach(function(g) {
-    var name = g.fullName;
-    // If it's a plus one and a name was provided, use that name.
-    if (g.isPlusOne && plusOneName) {
-      name = plusOneName;
-    }
-
-    for (var evtId in g.rsvps) {
-      if (!eventAttendance[evtId]) {
-        eventAttendance[evtId] = { attending: [], declined: [] };
-      }
-      if (g.rsvps[evtId] === "Attending") {
-        eventAttendance[evtId].attending.push(name);
-      } else {
-        eventAttendance[evtId].declined.push(name);
-      }
-    }
-  });
-
-  // -------------------------------------------------------------
-  // 1. BUILD GUEST EMAIL (Event-First Layout)
-  // -------------------------------------------------------------
-  var guestSummaryHtml = "<div style='line-height: 1.6; font-family: Arial, sans-serif;'>";
-
-  for (var evtId in eventAttendance) {
-    var evt = eventsMap[evtId] || { Title: evtId };
-    var attendees = eventAttendance[evtId].attending;
-
-    if (attendees.length > 0) {
-      // Generate Google Calendar date parameter if possible
-      var calendarDates = "";
-      if (evt.Date_Time) {
-        var eventDate = new Date(evt.Date_Time);
-        if (!isNaN(eventDate.getTime())) {
-          var duration = parseInt(evt.Duration_Minutes, 10) || 60; // Default to 60 mins if not specified
-          calendarDates = "&dates=" + formatToGoogleCalendarDate(eventDate, duration);
-        }
-      }
-
-      // Dynamic Google Calendar link
-      var gCalUrl = "https://calendar.google.com/calendar/render?action=TEMPLATE" +
-        "&text=" + encodeURIComponent(evt.Title || "Event") +
-        "&location=" + encodeURIComponent(evt.Location || "") +
-        calendarDates +
-        "&details=" + encodeURIComponent((evt.Description || "") + "\n\nAttending: " + formatNameList(attendees.slice()) + "\n\nWe look forward to celebrating with you!").replace(/'/g, '%27');
-
-      guestSummaryHtml += "<div style='margin-bottom: 20px; padding: 16px; background-color: #f8f9fa; border-left: 4px solid #2e7d32; border-radius: 6px;'>" +
-        "<h3 style='margin: 0 0 6px 0; color: #2e7d32; font-size: 1.15em;'>✓ " + (evt.Title || evtId) + "</h3>" +
-        (evt.Date_Time ? "<div style='color: #444;'>📅 <strong>When:</strong> " + evt.Date_Time + "</div>" : "") +
-        (evt.Location ? "<div style='color: #444;'>📍 <strong>Where:</strong> " + evt.Location + "</div>" : "") +
-        (evt.Description ? "<div style='color: #666; font-style: italic; margin-top: 6px; font-size: 0.95em;'>" + evt.Description + "</div>" : "") +
-        "<div style='margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd;'>" +
-          "<strong>Attending (" + attendees.length + "):</strong> " + formatNameList(attendees.slice()) +
-        "</div>" +
-        "<div style='margin-top: 10px;'>" +
-          "<a href='" + gCalUrl + "' target='_blank' style='display: inline-block; background-color: #4a90e2; color: #ffffff; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 0.85em; font-weight: bold;'>📅 Add to Google Calendar</a>" +
-        "</div>" +
-      "</div>";
-    } else {
-      guestSummaryHtml += "<div style='margin-bottom: 12px; padding: 12px; background-color: #fafafa; border-left: 4px solid #c62828; border-radius: 4px; color: #777;'>" +
-        "<strong>✕ " + (evt.Title || evtId) + ":</strong> Not Attending" +
-      "</div>";
-    }
-  }
-  guestSummaryHtml += "</div>";
-
-  var guestBodyHtml = 
-    "<div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; font-family: Arial, sans-serif;'>" +
-      "<h2 style='color: #2c3e50; text-align: center;'>" + (globalConfig.email_salutation || "Hello") + " " + primaryName + ",</h2>" +
-      "<p style='text-align: center; color: #555;'>Thank you for submitting your RSVP! Here is your confirmed event schedule:</p>" +
-      "<hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;'>" +
-      guestSummaryHtml +
-      (notes ? "<div style='margin-top: 20px; padding: 12px; background-color: #fffde7; border: 1px solid #fff59d; border-radius: 4px;'><strong>Notes / Dietary Restrictions:</strong><br>" + notes.replace(/\n/g, '<br>') + "</div>" : "") +
-      (plusOneName ? "<div style='margin-top: 10px; padding: 12px; background-color: #e3f2fd; border: 1px solid #bbdefb; border-radius: 4px;'><strong>Plus One Guest:</strong> " + plusOneName + "</div>" : "") +
-      "<br><p style='text-align: center; color: #555;'>We look forward to celebrating with you!</p>" +
-    "</div>";
-
-  // Send email to Guest
-  if (recipientEmail) {
-    if (config.sendEmails) {
-      MailApp.sendEmail({ 
-        to: recipientEmail, 
-        subject: "RSVP Confirmation - " + eventTitle, 
-        htmlBody: guestBodyHtml 
-      });
-      Logger.log("Sent confirmation email to guest: " + recipientEmail);
-    } else {
-      Logger.log("Email sending disabled. Skipping confirmation email for guest: " + recipientEmail);
-    }
-  }
-
-  // -------------------------------------------------------------
-  // 2. BUILD DEDICATED ADMIN EMAIL
-  // -------------------------------------------------------------
-  if (adminEmail) {
-    var adminSummaryHtml = "<div style='line-height: 1.6; font-family: Arial, sans-serif;'>";
-
-    for (var evtIdAdmin in eventAttendance) {
-      var evtObj = eventsMap[evtIdAdmin] || { Title: evtIdAdmin };
-      var attList = eventAttendance[evtIdAdmin].attending;
-      var decList = eventAttendance[evtIdAdmin].declined;
-
-      adminSummaryHtml += "<div style='margin-bottom: 15px; padding: 12px; background-color: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 6px;'>" +
-        "<h4 style='margin: 0 0 6px 0; color: #2c3e50;'>" + (evtObj.Title || evtIdAdmin) + "</h4>" +
-        "<div><strong style='color: #2e7d32;'>Attending (" + attList.length + "):</strong> " + (attList.length > 0 ? formatNameList(attList.slice()) : "<em>None</em>") + "</div>" +
-        "<div><strong style='color: #c62828;'>Declined (" + decList.length + "):</strong> " + (decList.length > 0 ? formatNameList(decList.slice()) : "<em>None</em>") + "</div>" +
-      "</div>";
-    }
-    adminSummaryHtml += "</div>";
-
-    var adminBodyHtml = 
-      "<div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; font-family: Arial, sans-serif;'>" +
-        "<h3 style='color: #2c3e50; margin-top: 0;'>RSVP Submission: " + primaryName + "</h3>" +
-        "<p><strong>Primary Email:</strong> " + (recipientEmail || "N/A") + "</p>" +
-        "<hr style='border: none; border-top: 1px solid #eee; margin: 15px 0;'>" +
-        "<h4>Event Breakdown:</h4>" +
-        adminSummaryHtml +
-        (notes ? "<div style='margin-top: 15px; padding: 10px; background-color: #fffde7; border: 1px solid #fff59d; border-radius: 4px;'><strong>Dietary / Notes:</strong><br>" + notes.replace(/\n/g, '<br>') + "</div>" : "") +
-        (plusOneName ? "<div style='margin-top: 10px; padding: 12px; background-color: #e3f2fd; border: 1px solid #bbdefb; border-radius: 4px;'><strong>Plus One Guest:</strong> " + plusOneName + "</div>" : "") +
-      "</div>";
-
-    if (config.sendEmails) {
-      MailApp.sendEmail({ 
-        to: adminEmail, 
-        subject: "[Admin Notification] RSVP Update: " + primaryName, 
-        htmlBody: adminBodyHtml 
-      });
-      Logger.log("Sent admin notification email to: " + adminEmail);
-    } else {
-      Logger.log("Email sending disabled. Skipping admin notification email for: " + adminEmail);
-    }
-  }
-}
-
-/**
- * Formats an array of names into a natural language string.
- * e.g., ["A", "B", "C"] -> "A, B, and C"
- * @param {string[]} names The array of names.
- * @returns {string} The formatted string.
- */
-function formatNameList(names) {
-  if (!names || names.length === 0) return "";
-  if (names.length === 1) return names[0];
-  if (names.length === 2) return names.join(" and ");
-  var last = names.pop();
-  return names.join(", ") + ", and " + last;
-}
-
-/**
- * Helper to format a Date object into a Google Calendar-compatible date string.
- * @param {Date} date The start date and time of the event.
- * @param {number} durationMinutes The duration of the event in minutes.
- * @returns {string} A formatted string like '20240525T100000/20240525T110000'.
- */
-function formatToGoogleCalendarDate(date, durationMinutes) {
-  var pad = function(num) { return num < 10 ? '0' + num : '' + num; };
-  
-  var startDate = date;
-  var durationMs = (durationMinutes || 60) * 60 * 1000; // Default to 60 minutes in milliseconds
-  var endDate = new Date(startDate.getTime() + durationMs);
-
-  var formatDate = function(d) {
-    return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
-           'T' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
-  };
-
-  return formatDate(startDate) + '/' + formatDate(endDate);
-}
-
-/**
- * Helper to build JSON HTTP responses
- */
-function createJsonResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
-}
-
-function EVENT_SUMMARY() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var guestsSheet = ss.getSheetByName("Guests");
-  var eventsSheet = ss.getSheetByName("Events");
-  
-  // 1. Load dynamic event definitions from the "Events" tab
-  var eventData = eventsSheet.getDataRange().getValues();
-  var eventHeaders = eventData[0];
-  var eventIdCol = eventHeaders.indexOf("Event_ID");
-  var titleCol = eventHeaders.indexOf("Title");
-  
-  var events = {};
-  // Loop through events tab (skipping header)
-  for (var e = 1; e < eventData.length; e++) {
-    var evId = String(eventData[e][eventIdCol] || "").trim();
-    var evTitle = String(eventData[e][titleCol] || "").trim();
-    if (evId) {
-      events[evId] = {
-        name: evTitle || evId,
-        invited: 0,
-        attending: 0,
-        noResponse: 0
-      };
-    }
-  }
-  
-  // 2. Load guest data from the "Guests" tab
-  var guestData = guestsSheet.getDataRange().getValues();
-  var guestHeaders = guestData[0];
-  var allowedCol = guestHeaders.indexOf("Allowed_Events");
-  var rsvpCol = guestHeaders.indexOf("RSVPs");
-  
-  // 3. Loop through all guest rows to calculate counts
-  for (var i = 1; i < guestData.length; i++) {
-    var allowedStr = String(guestData[i][allowedCol] || "");
-    var rsvpStr = String(guestData[i][rsvpCol] || "{}");
-    
-    var rsvpJson = {};
-    try {
-      rsvpJson = JSON.parse(rsvpStr);
-    } catch (err) {
-      rsvpJson = {};
-    }
-    
-    // Check each dynamically loaded event
-    for (var eventKey in events) {
-      // Check if the guest is allowed/invited to this event
-      if (allowedStr.indexOf(eventKey) !== -1) {
-        events[eventKey].invited++;
-        
-        var status = rsvpJson[eventKey];
-        if (status === "Attending") {
-          events[eventKey].attending++;
-        } else {
-          events[eventKey].noResponse++;
-        }
-      }
-    }
-  }
-  
-  // 4. Format the output table
-  var output = [["Event", "Invited", "Attending", "Not Responded"]];
-  for (var key in events) {
-    output.push([
-      events[key].name,
-      events[key].invited,
-      events[key].attending,
-      events[key].noResponse
-    ]);
-  }
-  
-  return output;
+  return "Successfully sent " + countSent + " reminder email(s).";
 }

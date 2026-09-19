@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RSVP Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <style>
+        :root {
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-header: #2c3e50;
+            --border-primary: #ddd;
+            --border-secondary: #ccc;
+            --accent-primary: #4a90e2;
+            --accent-danger: #e74c3c;
+            --accent-disabled: #bdc3c7;
+            --highlight-row: #f5f5f5;
+            --highlight-header: #f2f2f2;
+            --status-success-bg: #e8f5e9;
+            --status-success-text: #2e7d32;
+            --status-success-border: #a5d6a7;
+            --status-error-bg: #ffebee;
+            --status-error-text: #c62828;
+            --status-error-border: #ef9a9a;
+            --status-info-bg: #e3f2fd;
+            --status-info-text: #1565c0;
+            --status-info-border: #90caf9;
+            --chart-bg: #e9ecef;
+            --chart-responded: #28a745;
+            --chart-no-response: #ffc107;
+            --chart-declined: #dc3545;
+            --shadow-color: rgba(0,0,0,0.08);
+            --modal-bg: rgba(0,0,0,0.5);
+            --logout-text: #6c757d;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #121212;
+                --bg-secondary: #1e1e1e;
+                --text-primary: #e0e0e0;
+                --text-secondary: #a0a0a0;
+                --text-header: #ffffff;
+                --border-primary: #444;
+                --border-secondary: #555;
+                --accent-primary: #5e9eff;
+                --accent-danger: #ff5c5c;
+                --accent-disabled: #4a4a4a;
+                --highlight-row: #333;
+                --highlight-header: #2a2a2a;
+                --status-success-bg: #1c3b23;
+                --status-success-text: #a5d6a7;
+                --status-success-border: #2e7d32;
+                --status-error-bg: #422022;
+                --status-error-text: #ef9a9a;
+                --status-error-border: #c62828;
+                --status-info-bg: #1a3a5b;
+                --status-info-text: #90caf9;
+                --status-info-border: #1565c0;
+                --chart-bg: #3a3a3a;
+                --shadow-color: rgba(0,0,0,0.4);
+                --modal-bg: rgba(0,0,0,0.7);
+                --logout-text: #a0a0a0;
+            }
+        }
+
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; background-color: var(--bg-primary); color: var(--text-primary); }
+        .container { max-width: 800px; margin: 2rem auto; padding: 2rem; background-color: var(--bg-secondary); border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color); }
+        h1, h2 { color: var(--text-header); }
+        #login-view { text-align: center; }
+        #admin-view { display: none; }
+        input[type="password"], input[type="text"] { width: 100%; padding: 10px; margin-bottom: 1rem; border: 1px solid var(--border-secondary); border-radius: 4px; box-sizing: border-box; background-color: var(--bg-primary); color: var(--text-primary); }
+        .btn { display: inline-block; background-color: var(--accent-primary); color: white; padding: 10px 18px; text-decoration: none; border-radius: 5px; font-weight: bold; cursor: pointer; border: none; }
+        .btn-danger { background-color: var(--accent-danger); }
+        .btn:disabled { background-color: var(--accent-disabled); cursor: not-allowed; }
+        #status { margin-top: 1rem; padding: 10px; border-radius: 4px; display: none; }
+        .status-success { background-color: var(--status-success-bg); color: var(--status-success-text); border: 1px solid var(--status-success-border); }
+        .status-error { background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border); }
+        .status-info { background-color: var(--status-info-bg); color: var(--status-info-text); border: 1px solid var(--status-info-border); }
+        table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border-primary); }
+        th { background-color: var(--highlight-header); }
+        tr:hover { background-color: var(--highlight-row); }
+        #loader { display: none; text-align: center; padding: 2rem; }
+
+        /* Accordion Styles */
+        .accordion-item { border: 1px solid var(--border-primary); border-radius: 4px; margin-bottom: 1rem; overflow: hidden; }
+        .accordion-header { background-color: var(--highlight-header); padding: 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .accordion-header:hover { background-color: var(--highlight-row); }
+        .accordion-content { display: none; padding: 1rem; border-top: 1px solid var(--border-primary); }
+        .accordion-content h3 { margin-top: 0; color: var(--accent-primary); }
+        .accordion-content ul { padding-left: 20px; margin: 0; }
+        .accordion-content li { margin-bottom: 0.5rem; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; }
+        .stat-box { text-align: center; }
+        .stat-box .number { font-size: 1.5em; font-weight: bold; }
+        .stat-box .label { font-size: 0.9em; color: var(--text-secondary); }
+        .attendee-list { font-size: 0.9em; color: var(--text-secondary); margin-left: 8px; }
+        .attendee-list:before { content: '('; }
+        .attendee-list:after { content: ')'; }
+        .no-attendees { color: var(--text-secondary); font-style: italic; }
+
+        /* Chart Styles */
+        .charts-area { margin-bottom: 2.5rem; }
+        .chart-container { margin-bottom: 2rem; }
+        .chart-title { font-weight: bold; margin-bottom: 0.5rem; display: block; }
+        .chart-bar { display: flex; height: 25px; border-radius: 4px; overflow: hidden; background-color: var(--chart-bg); }
+        .chart-segment { display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8em; font-weight: bold; transition: opacity 0.2s; }
+        .chart-segment:hover { opacity: 0.85; }
+        .chart-segment[data-tooltip]:before { content: attr(data-tooltip); position: absolute; background: var(--text-primary); color: var(--bg-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.9em; transform: translateY(30px); white-space: nowrap; z-index: 10; }
+        .segment-responded, .segment-attending { background-color: var(--chart-responded); } /* Green */
+        .segment-no-response { background-color: var(--chart-no-response); } /* Yellow */
+        .segment-declined { background-color: var(--chart-declined); } /* Red */
+        .chart-legend { display: flex; gap: 15px; margin-top: 0.75rem; font-size: 0.85em; justify-content: center; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+
+        /* Logout Button */
+        .logout-btn { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--logout-text); cursor: pointer; font-size: 0.9em; }
+        .logout-btn:hover { color: var(--primary); text-decoration: underline; }
+
+        /* Modal Styles */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: var(--bg-secondary); padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .modal-header h3 { margin: 0; }
+        .modal-close { font-size: 1.5rem; font-weight: bold; cursor: pointer; background: none; border: none; }
+        .modal-body ul { list-style: none; padding: 0; margin: 0; }
+        .modal-body li { padding: 0.5rem 0; border-bottom: 1px solid var(--border-primary); }
+        .modal-body li:last-child { border-bottom: none; }
+        .modal-body label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; }
+        .modal-select-all { margin-bottom: 1rem; }
+        .modal-select-all label { font-size: 0.9em; }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #loader { display: none; text-align: center; padding: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel</h1>
+
+        <!-- Login View -->
+        <div id="login-view">
+            <h2>Please Enter Password</h2>
+            <input type="password" id="password" placeholder="Password">
+            <button class="btn" onclick="login()">Login</button>
+            <div id="login-error" style="color: #c62828; margin-top: 1rem; display: none;">Incorrect password.</div>
+        </div>
+
+        <!-- Main Admin View -->
+        <div id="admin-view">
+            <button class="logout-btn" onclick="logout()">Logout</button>
+            <h2>RSVP Summary</h2>
+            <div id="charts-container" class="charts-area"></div>
+
+            <h2 style="margin-top: 2rem;">Event Details</h2>
+            <div id="dashboard-container"></div>
+
+            <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+
+            <h2>Send Reminder Emails</h2>
+            <p>This will send an email to the primary guest of each group that has not yet submitted an RSVP for any event.</p>
+            <button id="remind-btn" class="btn btn-danger" onclick="openReminderModal()">Select Recipients for Reminder</button>
+            
+            <div id="not-responded-container" style="margin-top: 1.5rem;">
+                <!-- Groups that have not responded will be listed here -->
+            </div>
+            
+            <div id="status"></div>
+        </div>
+    </div>
+
+    <!-- Reminder Modal -->
+    <div id="reminder-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Reminder Recipients</h3>
+                <button class="modal-close" onclick="closeReminderModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-select-all">
+                    <label>
+                        <input type="checkbox" id="select-all-reminders" onchange="toggleAllReminderCheckboxes(this.checked)">
+                        Select All
+                    </label>
+                </div>
+                <ul id="reminder-recipient-list">
+                    <!-- Recipient list will be populated here -->
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeReminderModal()">Cancel</button>
+                <button id="send-reminders-confirm" class="btn btn-danger" onclick="sendReminders()">Send Reminders</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let globalNotRespondedCache = []; // Cache for the modal
+        // Store the password in session storage so we don't have to send it with every request
+        const getAuth = () => ({ password: localStorage.getItem('adminPass') });
+
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status-' + type;
+            statusEl.style.display = 'block';
+        }
+
+        async function apiCall(payload) {
+            const response = await fetch(CONFIG.scriptUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' }, // Use text/plain to avoid CORS preflight
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
+            
+            // --- DEBUGGING: Log the raw server response ---
+            const rawText = await response.text();
+            console.log("Raw response from server:", rawText);
+            // --- END DEBUGGING ---
+
+            const result = JSON.parse(rawText); // Parse the text we logged
+            if (result.error) throw new Error(result.error);
+            if (result.status === 'unauthorized') {
+                // If token/password is ever invalid, force re-login
+                localStorage.removeItem('adminPass');
+                document.getElementById('login-view').style.display = 'block';
+                document.getElementById('admin-view').style.display = 'none';
+                document.getElementById('login-error').style.display = 'block';
+                throw new Error('Authorization failed. Please log in again.');
+            }
+            return result.data;
+        }
+
+        async function login() {
+            const password = document.getElementById('password').value;
+            const loginError = document.getElementById('login-error');
+            loginError.style.display = 'none';
+            if (!password) return;
+
+            try {
+                await apiCall({ action: 'adminLogin', password: password });
+                localStorage.setItem('adminPass', password); // Store password for session
+                document.getElementById('login-view').style.display = 'none';
+                document.getElementById('admin-view').style.display = 'block';
+                loadDashboard();
+            } catch (err) {
+                loginError.style.display = 'block';
+                console.error(err);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('adminPass');
+            document.getElementById('login-view').style.display = 'block';
+            document.getElementById('admin-view').style.display = 'none';
+            document.getElementById('password').value = '';
+        }
+
+        async function checkCachedLogin() {
+            const cachedPassword = localStorage.getItem('adminPass');
+            const loginButton = document.querySelector('#login-view .btn');
+            const passwordInput = document.getElementById('password');
+
+            if (cachedPassword) {
+                // Indicate that an automatic login attempt is in progress
+                loginButton.disabled = true;
+                loginButton.textContent = 'Logging in...';
+                passwordInput.disabled = true;
+
+                try {
+                    // Silently try to log in with the cached password
+                    await apiCall({ action: 'adminLogin', password: cachedPassword });
+                    document.getElementById('login-view').style.display = 'none';
+                    document.getElementById('admin-view').style.display = 'block';
+                    // Reset button state in case user logs out later
+                    loginButton.disabled = false;
+                    loginButton.textContent = 'Login';
+                    passwordInput.disabled = false;
+                    loadDashboard();
+                } catch (err) {
+                    // Cached password was invalid, clear it and show login
+                    logout();
+                }
+            }
+        }
+        // Run on page load
+        document.addEventListener('DOMContentLoaded', checkCachedLogin);
+
+        async function loadDashboard() {
+            const container = document.getElementById('dashboard-container');
+            container.innerHTML = '<div id="loader" style="display: block;">Loading...</div>';
+            document.getElementById('charts-container').innerHTML = '';
+            try {
+                const data = await apiCall({ action: 'getDashboard', auth: getAuth() });
+                const { guests: rawGuests, events: rawEvents } = data;
+                container.innerHTML = ''; // Clear loader
+
+                // --- 1. Process Raw Data into Usable Structures (Heavy Lifting) ---
+                const groups = {};
+                rawGuests.forEach(guest => {
+                    const groupId = guest.Group_ID;
+                    if (!groupId) return;
+                    if (!groups[groupId]) {
+                        groups[groupId] = {
+                            id: groupId,
+                            primaryGuest: '', // Will be set after sorting
+                            guests: [],
+                            hasResponded: false
+                        };
+                    }
+                    groups[groupId].guests.push(guest);
+                    if (guest.RSVPs && guest.RSVPs !== '{}') {
+                        groups[groupId].hasResponded = true;
+                    }
+                });
+
+                // Determine the primary guest for each group based on the lowest Guest_ID
+                Object.values(groups).forEach(group => {
+                    if (!group.guests || group.guests.length === 0) {
+                        group.primaryGuest = 'Unnamed Group';
+                        return;
+                    }
+                    // Sort by Guest_ID numerically to handle cases like 'G-2' vs 'G-10'
+                    group.guests.sort((a, b) => {
+                        const numA = parseInt(String(a.Guest_ID || '0').split('-').pop(), 10);
+                        const numB = parseInt(String(b.Guest_ID || '0').split('-').pop(), 10);
+                        return numA - numB;
+                    });
+                    group.primaryGuest = group.guests[0].Full_Name;
+                });
+
+                const eventsSummary = {};
+                rawEvents.forEach(event => {
+                    if (!event.Event_ID) return;
+                    eventsSummary[event.Event_ID] = {
+                        id: event.Event_ID,
+                        name: event.Title || event.Event_ID,
+                        respondedGroups: [],
+                        notRespondedGroups: []
+                    };
+                });
+
+                const globalNotResponded = [];
+                globalNotRespondedCache = []; // Reset cache
+                Object.values(groups).forEach(group => {
+                    const primaryGuest = group.guests[0];
+                    const allowedEventsStr = primaryGuest.Allowed_Events || "";
+
+                    if (!group.hasResponded) {
+                        globalNotResponded.push(group);
+                    }
+                    globalNotRespondedCache = globalNotResponded;
+
+                    for (const eventId in eventsSummary) {
+                        if (allowedEventsStr.includes(eventId)) {
+                            if (group.hasResponded) {
+                                const attendees = [];
+                                group.guests.forEach(guest => {
+                                    try {
+                                        const rsvps = JSON.parse(guest.RSVPs || '{}');
+                                        if (rsvps[eventId] === 'Attending') {
+                                            attendees.push(guest.Full_Name);
+                                        }
+                                    } catch (e) {}
+                                });
+                                eventsSummary[eventId].respondedGroups.push({ ...group, attendees });
+                            } else {
+                                eventsSummary[eventId].notRespondedGroups.push(group);
+                            }
+                        }
+                    }
+                });
+
+                // --- 2. Render Charts ---
+                renderCharts(eventsSummary);
+
+                // --- 3. Render the UI from Processed Data ---
+                Object.values(eventsSummary).forEach(event => {
+                    const totalAttending = event.respondedGroups.reduce((sum, group) => sum + group.attendees.length, 0);
+                    const totalInvited = event.respondedGroups.length + event.notRespondedGroups.length;
+                    
+                    const item = document.createElement('div');
+                    item.className = 'accordion-item';
+                    item.innerHTML = `
+                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="false">
+                            <span>${event.name}</span>
+                            <div class="stat-grid">
+                                <div class="stat-box"><span class="number">${totalInvited}</span><span class="label"> Groups Invited</span></div>
+                                <div class="stat-box"><span class="number">${totalAttending}</span><span class="label"> People Attending</span></div>
+                                <div class="stat-box"><span class="number">${event.respondedGroups.length}</span><span class="label"> Groups Responded</span></div>
+                            </div>
+                        </div>
+                        <div class="accordion-content">
+                            <h3>Responded (${event.respondedGroups.length})</h3>
+                            <ul id="responded-${event.id}"></ul>
+                        </div>
+                    `;
+                    container.appendChild(item);
+
+                    const respondedList = document.getElementById(`responded-${event.id}`);
+                    if (event.respondedGroups.length > 0) {
+                        // Sort groups with attendees to the top
+                        event.respondedGroups.sort((a, b) => b.attendees.length - a.attendees.length);
+                        event.respondedGroups.forEach(group => respondedList.appendChild(createGroupListItem(group, true)));
+                    } else {
+                        respondedList.innerHTML = '<li class="no-attendees">No groups have responded yet.</li>';
+                    }
+                });
+
+                const notRespondedContainer = document.getElementById('not-responded-container');
+                notRespondedContainer.innerHTML = `<h3>Not Responded (${globalNotResponded.length})</h3>`;
+                const notRespondedList = document.createElement('ul');
+                if (globalNotResponded.length > 0) {
+                    globalNotResponded.forEach(group => notRespondedList.appendChild(createGroupListItem(group, false)));
+                } else {
+                    notRespondedList.innerHTML = '<li class="no-attendees">All invited groups have responded. Great job!</li>';
+                }
+                notRespondedContainer.appendChild(notRespondedList);
+
+                // --- 4. Add Event Listeners for Accordions ---
+                document.querySelectorAll('.accordion-header').forEach(header => {
+                    const toggle = () => {
+                        const content = header.nextElementSibling;
+                        content.style.display = content.style.display === 'block' ? 'none' : 'block';
+                        header.setAttribute('aria-expanded', content.style.display === 'block');
+                    };
+                    header.addEventListener('click', toggle);
+                    header.addEventListener('keydown', e => (e.key === 'Enter' || e.key === ' ') && toggle());
+                });
+
+            } catch (err) {
+                container.innerHTML = '';
+                alert('Error loading summary: ' + err.message);
+            }
+        }
+
+        function renderCharts(eventsSummary) {
+            const chartsContainer = document.getElementById('charts-container');
+            let groupChartHtml = '<h3>Group Response Status</h3>';
+            let peopleChartHtml = '<h3 style="margin-top: 2rem;">Individual RSVP Status</h3>';
+
+            for (const eventId in eventsSummary) {
+                const event = eventsSummary[eventId];
+                const respondedCount = event.respondedGroups.length;
+                const notRespondedCount = event.notRespondedGroups.length;
+                const totalGroups = respondedCount + notRespondedCount;
+
+                // Chart 1: Group Status
+                const respondedPercent = totalGroups > 0 ? (respondedCount / totalGroups) * 100 : 0;
+                const notRespondedPercent = totalGroups > 0 ? (notRespondedCount / totalGroups) * 100 : 0;
+
+                groupChartHtml += `
+                    <div class="chart-container">
+                        <span class="chart-title">${event.name}</span>
+                        <div class="chart-bar">
+                            <div class="chart-segment segment-responded" style="width: ${respondedPercent}%;" data-tooltip="Responded: ${respondedCount}"></div>
+                            <div class="chart-segment segment-no-response" style="width: ${notRespondedPercent}%;" data-tooltip="No Response: ${notRespondedCount}"></div>
+                        </div>
+                    </div>
+                `;
+
+                // Chart 2: People Status
+                const attendingCount = event.respondedGroups.reduce((sum, group) => sum + group.attendees.length, 0);
+                const declinedCount = event.respondedGroups.reduce((sum, group) => sum + (group.guests.length - group.attendees.length), 0);
+                const noResponseCount = event.notRespondedGroups.reduce((sum, group) => sum + group.guests.length, 0);
+                const totalPeople = attendingCount + declinedCount + noResponseCount;
+
+                const attendingPercent = totalPeople > 0 ? (attendingCount / totalPeople) * 100 : 0;
+                const declinedPercent = totalPeople > 0 ? (declinedCount / totalPeople) * 100 : 0;
+                const noResponsePercent = totalPeople > 0 ? (noResponseCount / totalPeople) * 100 : 0;
+
+                peopleChartHtml += `
+                    <div class="chart-container">
+                        <span class="chart-title">${event.name}</span>
+                        <div class="chart-bar">
+                            <div class="chart-segment segment-attending" style="width: ${attendingPercent}%;" data-tooltip="Attending: ${attendingCount}"></div>
+                            <div class="chart-segment segment-declined" style="width: ${declinedPercent}%;" data-tooltip="Declined: ${declinedCount}"></div>
+                            <div class="chart-segment segment-no-response" style="width: ${noResponsePercent}%;" data-tooltip="No Response: ${noResponseCount}"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            groupChartHtml += `
+                <div class="chart-legend"><div class="legend-item"><div class="legend-color segment-responded"></div> Responded</div><div class="legend-item"><div class="legend-color segment-no-response"></div> No Response</div></div>`;
+
+            peopleChartHtml += `
+                <div class="chart-legend"><div class="legend-item"><div class="legend-color segment-attending"></div> Attending</div><div class="legend-item"><div class="legend-color segment-declined"></div> Declined</div><div class="legend-item"><div class="legend-color segment-no-response"></div> No Response</div></div>`;
+
+            chartsContainer.innerHTML = groupChartHtml + peopleChartHtml;
+        }
+
+
+        function createGroupListItem(group, showAttendees) {
+            const li = document.createElement('li');
+            const invitationUrl = `${new URL(window.location.href).origin}${new URL(window.location.href).pathname.replace('Admin.html', 'index.html')}?id=${group.id}`;
+            const allGuestNames = group.guests.map(g => g.Full_Name);
+            const guestCount = allGuestNames.length;
+            const attendeesText = showAttendees ? `<span class="attendee-list">${group.attendees.length > 0 ? group.attendees.join(', ') : '0 Attending'}</span>` : '';
+
+            let guestListHtml = '';
+            if (showAttendees) {
+                // Show status for each guest in responded groups
+                guestListHtml = allGuestNames.map(name => `<li>${group.attendees.includes(name) ? '✅' : '❌'} ${name}</li>`).join('');
+            } else {
+                // Just show names for non-responded groups
+                guestListHtml = allGuestNames.map(name => `<li>${name}</li>`).join('');
+            }
+
+            li.innerHTML = `
+                <div class="accordion-header" role="button" tabindex="0" aria-expanded="false" style="padding: 0.5rem 1rem; font-size: 0.95em;">
+                    <a href="${invitationUrl}" target="_blank" onclick="event.stopPropagation()">
+                        <strong>${group.primaryGuest}</strong> (${guestCount} ${guestCount > 1 ? 'guests' : 'guest'})
+                    </a>
+                    ${attendeesText}
+                </div>
+                <div class="accordion-content" style="padding: 0.5rem 1rem 0.5rem 2rem; font-size: 0.9em;">
+                    <ul>${guestListHtml}</ul>
+                </div>
+            `;
+
+            const header = li.querySelector('.accordion-header');
+            header.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const content = header.nextElementSibling;
+                content.style.display = content.style.display === 'block' ? 'none' : 'block';
+                header.setAttribute('aria-expanded', content.style.display === 'block');
+            });
+            return li;
+        }
+
+        function openReminderModal() {
+            const listEl = document.getElementById('reminder-recipient-list');
+            listEl.innerHTML = '';
+            if (globalNotRespondedCache.length === 0) {
+                listEl.innerHTML = '<li>All groups have responded. No reminders to send.</li>';
+                document.getElementById('send-reminders-confirm').classList.add('hidden');
+            } else {
+                globalNotRespondedCache.forEach(group => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <label>
+                            <input type="checkbox" class="reminder-checkbox" value="${group.id}">
+                            <strong>${group.primaryGuest}</strong> (${group.guests.length} guests)
+                        </label>
+                    `;
+                    listEl.appendChild(li);
+                });
+                document.getElementById('send-reminders-confirm').classList.remove('hidden');
+            }
+            document.getElementById('reminder-modal').style.display = 'flex';
+        }
+
+        function closeReminderModal() {
+            document.getElementById('reminder-modal').style.display = 'none';
+        }
+
+        function toggleAllReminderCheckboxes(checked) {
+            document.querySelectorAll('.reminder-checkbox').forEach(chk => chk.checked = checked);
+        }
+
+        async function sendReminders() {
+            const selectedGroupIds = Array.from(document.querySelectorAll('.reminder-checkbox:checked')).map(chk => chk.value);
+
+            if (selectedGroupIds.length === 0) {
+                showStatus('No recipients selected.', 'info');
+                return;
+            }
+
+            const btn = document.getElementById('send-reminders-confirm');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            showStatus('Sending reminder emails...', 'info');
+
+            try {
+                const result = await apiCall({ action: 'sendReminders', auth: getAuth(), groupIds: selectedGroupIds });
+                showStatus(result.message, 'success');
+                closeReminderModal();
+            } catch (err) {
+                showStatus('Error: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send Reminders';
+            }
+        }
+
+        document.getElementById('password').addEventListener('keyup', e => e.key === "Enter" && (e.preventDefault(), login()));
+    </script>
+</body>
+</html>
