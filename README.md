@@ -144,17 +144,6 @@ You can batch-send personalized HTML emails with dynamic links directly from App
 
     - Update the Invite_Sent column in your spreadsheet to Yes to prevent duplicate emails.
 
-## 📊 Summary Spreadsheet Formula
-The backend includes a custom formula function EVENT_SUMMARY() that computes live attendance counts.
-
-In any empty cell in your Google Sheet, type:
-
-```Excel
-=EVENT_SUMMARY()
-```
-
-This auto-populates a real-time tracking table with Event Name, Invited, Attending, and Not Responded counts.
-
 ## 📁 Repository Structure
 ```text
 ├── backend/

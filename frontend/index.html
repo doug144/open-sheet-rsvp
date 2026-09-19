@@ -615,12 +615,17 @@
               Declining Event
             </label>
           </div>
+          
+          ${isFirstEvent && visibleEventIds.length > 1 ? `
+            <button type="button" class="btn-secondary" style="margin-bottom: 15px;" onclick="copyFirstEventSelections('${evtId}')">
+              Copy response to all other events
+            </button>
+          ` : ''}
 
           ${invitedGuests.length > 1 ? `
             <div id="guests_box_${evtId}" class="guest-checkbox-list ${initialStatus !== 'Attending' ? 'hidden' : ''}">
               <p style="margin-top: 0; font-size: 0.9em; color: #555;">Who will be attending?</p>
               ${checkboxesHtml}
-              ${isFirstEvent && visibleEventIds.length > 1 ? `<button type="button" class="btn-secondary" onclick="copyFirstEventSelections('${evtId}')">📋 Copy guest choices to all other events</button>` : ''}
             </div>
           ` : ''}
         `;
@@ -817,8 +822,13 @@
           // Find all dynamic guests associated with this primary guest
           const additionalGuestsForPrimary = groupData.guests.filter(g => g.isPlusOne && g.primaryGuestRow === primaryGuest.row);
 
+          // Identify if the primary guest's individual checkbox is checked
+          const primaryGuestCheckbox = document.getElementById(`chk_${evtId}_${primaryGuest.guestId}`);
+          const isPrimaryGuestAttending = primaryGuestCheckbox ? primaryGuestCheckbox.checked : false;
+
           const rsvpObject = {
-            status: isEventAttending ? "Attending" : "Decline",
+            // Only mark as attending if the event is accepted AND the individual guest is checked
+            status: (isEventAttending && isPrimaryGuestAttending) ? "Attending" : "Decline",
             additionalGuests: []
           };
 
