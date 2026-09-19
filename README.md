@@ -22,6 +22,7 @@ This project was born out of a real-world need. When planning a family celebrati
   - Send custom HTML invitations with personalized RSVP links directly from Apps Script.
   - Send instant confirmation emails to guests containing one-click **Add to Google Calendar** links.
   - Send real-time submission alerts to event admins.
+- **Password-Protected Admin Dashboard:** A separate `admin.html` page to view real-time RSVP stats, charts, and send reminder emails to non-responders.
 - **Batch Selection Shortcut:** One-click button to copy guest choices across all sub-events.
 - **Custom Google Sheet Functions:** Includes custom spreadsheet formulas (like `=EVENT_SUMMARY()`) to track real-time attendance rollups.
 
@@ -158,10 +159,11 @@ This auto-populates a real-time tracking table with Event Name, Invited, Attendi
 ```text
 ├── backend/
 │   └── Code.gs              # Apps Script backend API & email engine
-├── frontend/
+├── frontend/                # All static frontend files
 │   ├── index.html           # Main dynamic RSVP web application
-│   ├── config.js            # Configuration file for Web App URL & cover image
-│   └── config.js.template   # Template configuration file
+│   ├── admin.html           # Admin dashboard for RSVP tracking
+│   ├── config.js            # Configuration file for Web App URL
+│   └── config.js.template   # Template for config.js
 └── README.md                # Documentation
 ```
 
