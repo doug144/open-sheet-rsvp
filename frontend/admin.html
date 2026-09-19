@@ -503,7 +503,8 @@
 
         function createGroupListItem(group, showAttendees) {
             const li = document.createElement('li');
-            const invitationUrl = `${new URL(window.location.href).origin}${new URL(window.location.href).pathname.replace('Admin.html', 'index.html')}?id=${group.id}`;
+            const currentPath = new URL(window.location.href).pathname;
+            const invitationUrl = `${currentPath.substring(0, currentPath.lastIndexOf('/'))}/index.html?id=${group.id}`;
             const allGuestNames = group.guests.map(g => g.Full_Name);
             const guestCount = allGuestNames.length;
             const attendeesText = showAttendees ? `<span class="attendee-list">${group.attendees.length > 0 ? group.attendees.join(', ') : '0 Attending'}</span>` : '';
