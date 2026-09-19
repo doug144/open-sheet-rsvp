@@ -566,11 +566,16 @@
         let checkboxesHtml = "";
         invitedGuests.forEach(guest => {
           let isChecked = true; // Default to checked if attending
-          // For plus-ones, their status is stored per event. For primary, it's based on the event's main status.
           if (guest.isPlusOne) {
             isChecked = guest.existingRsvps[evtId] !== 'Decline';
           } else { 
-            isChecked = eventRsvpData.status !== 'Decline';
+            // Check the specific primary guest's RSVP status if it exists
+            if (guest.existingRsvps && guest.existingRsvps[evtId]) {
+              isChecked = guest.existingRsvps[evtId].status === 'Attending';
+            } else {
+              // Fallback for untouched forms
+              isChecked = eventRsvpData.status !== 'Decline';
+            }
           }
 
           checkboxesHtml += `
