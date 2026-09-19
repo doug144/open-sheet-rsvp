@@ -78,6 +78,23 @@ Reads / Writes
 
 ---
 
+### ⚠️ Important Security Consideration
+
+The primary security mechanism for this system is the `Group_ID` assigned to each guest group.
+
+**It is critical that you do not use simple, sequential, or guessable IDs.**
+
+If you use IDs like `GRP-101`, `GRP-102`, etc., a malicious actor could easily guess these IDs and gain access to the RSVP details of all your guests, including their names, which events they are invited to, and the ability to change their responses.
+
+**Recommendation:** Use a long, random, non-sequential string for each `Group_ID`. A good way to generate these is by using an online UUID (Universally Unique Identifier) generator.
+
+- **Insecure ❌:** `GRP-101`
+- **Secure ✅:** `a8a2e518-d39e-4b2b-9d1a-f8e7c6b0a9c4`
+
+By using random IDs, it becomes computationally infeasible for anyone to guess a valid link, thus protecting your guests' privacy.
+
+---
+
 ### Step 3: Configure and Host the Frontend
 
 1. Clone or download this repository.
@@ -120,7 +137,7 @@ You can batch-send personalized HTML emails with dynamic links directly from App
 
 1. The script will:
 
-    - Generate a personalized link (https://your-site.com?id=GRP-101).
+    - Generate a personalized link (https://your-site.com?id=a8a2e518-d39e-4b2b-9d1a-f8e7c6b0a9c4).
 
     - Send the invite via your GMail account.
 
