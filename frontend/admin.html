@@ -35,7 +35,6 @@
             --modal-bg: rgba(0,0,0,0.5);
             --logout-text: #6c757d;
         }
-
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-primary: #121212;
@@ -65,16 +64,17 @@
                 --logout-text: #a0a0a0;
             }
         }
-
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; background-color: var(--bg-primary); color: var(--text-primary); }
-        .container { max-width: 800px; margin: 2rem auto; padding: 2rem; background-color: var(--bg-secondary); border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color); }
-        h1, h2 { color: var(--text-header); }
+        .container { max-width: 800px; margin: 2rem auto; padding: 2rem; background-color: var(--bg-secondary); border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color); position: relative; }
+        h1, h2, h3 { color: var(--text-header); }
         #login-view { text-align: center; }
         #admin-view { display: none; }
         input[type="password"], input[type="text"] { width: 100%; padding: 10px; margin-bottom: 1rem; border: 1px solid var(--border-secondary); border-radius: 4px; box-sizing: border-box; background-color: var(--bg-primary); color: var(--text-primary); }
+        #search-input { padding: 12px; margin-bottom: 1.5rem; font-size: 1rem; }
         .btn { display: inline-block; background-color: var(--accent-primary); color: white; padding: 10px 18px; text-decoration: none; border-radius: 5px; font-weight: bold; cursor: pointer; border: none; }
         .btn-danger { background-color: var(--accent-danger); }
         .btn:disabled { background-color: var(--accent-disabled); cursor: not-allowed; }
+        .btn-secondary { background-color: var(--border-secondary); color: var(--text-primary); }
         #status { margin-top: 1rem; padding: 10px; border-radius: 4px; display: none; }
         .status-success { background-color: var(--status-success-bg); color: var(--status-success-text); border: 1px solid var(--status-success-border); }
         .status-error { background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border); }
@@ -83,7 +83,11 @@
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border-primary); }
         th { background-color: var(--highlight-header); }
         tr:hover { background-color: var(--highlight-row); }
-        #loader { display: none; text-align: center; padding: 2rem; }
+        
+        /* Collapsible Section Styles */
+        .section-toggle { cursor: pointer; user-select: none; display: flex; align-items: center; }
+        .section-toggle:hover { color: var(--accent-primary); }
+        .section-icon { display: inline-block; width: 25px; font-size: 0.75em; }
 
         /* Accordion Styles */
         .accordion-item { border: 1px solid var(--border-primary); border-radius: 4px; margin-bottom: 1rem; overflow: hidden; }
@@ -101,7 +105,7 @@
         .attendee-list:before { content: '('; }
         .attendee-list:after { content: ')'; }
         .no-attendees { color: var(--text-secondary); font-style: italic; }
-
+        
         /* Chart Styles */
         .charts-area { margin-bottom: 2.5rem; }
         .chart-container { margin-bottom: 2rem; }
@@ -110,23 +114,23 @@
         .chart-segment { display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8em; font-weight: bold; transition: opacity 0.2s; }
         .chart-segment:hover { opacity: 0.85; }
         .chart-segment[data-tooltip]:before { content: attr(data-tooltip); position: absolute; background: var(--text-primary); color: var(--bg-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.9em; transform: translateY(30px); white-space: nowrap; z-index: 10; }
-        .segment-responded, .segment-attending { background-color: var(--chart-responded); } /* Green */
-        .segment-no-response { background-color: var(--chart-no-response); } /* Yellow */
-        .segment-declined { background-color: var(--chart-declined); } /* Red */
+        .segment-responded, .segment-attending { background-color: var(--chart-responded); } 
+        .segment-no-response { background-color: var(--chart-no-response); } 
+        .segment-declined { background-color: var(--chart-declined); } 
         .chart-legend { display: flex; gap: 15px; margin-top: 0.75rem; font-size: 0.85em; justify-content: center; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
         .legend-color { width: 12px; height: 12px; border-radius: 3px; }
-
+        
         /* Logout Button */
         .logout-btn { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--logout-text); cursor: pointer; font-size: 0.9em; }
-        .logout-btn:hover { color: var(--primary); text-decoration: underline; }
-
+        .logout-btn:hover { color: var(--accent-primary); text-decoration: underline; }
+        
         /* Modal Styles */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); display: none; align-items: center; justify-content: center; z-index: 1000; }
         .modal-content { background: var(--bg-secondary); padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
         .modal-header h3 { margin: 0; }
-        .modal-close { font-size: 1.5rem; font-weight: bold; cursor: pointer; background: none; border: none; }
+        .modal-close { font-size: 1.5rem; font-weight: bold; cursor: pointer; background: none; border: none; color: var(--text-primary); }
         .modal-body ul { list-style: none; padding: 0; margin: 0; }
         .modal-body li { padding: 0.5rem 0; border-bottom: 1px solid var(--border-primary); }
         .modal-body li:last-child { border-bottom: none; }
@@ -134,18 +138,13 @@
         .modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; }
         .modal-select-all { margin-bottom: 1rem; }
         .modal-select-all label { font-size: 0.9em; }
-
-        .hidden {
-            display: none !important;
-        }
-
-        #loader { display: none; text-align: center; padding: 2rem; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Admin Panel</h1>
-
+        
         <!-- Login View -->
         <div id="login-view">
             <h2>Please Enter Password</h2>
@@ -153,35 +152,94 @@
             <button class="btn" onclick="login()">Login</button>
             <div id="login-error" style="color: #c62828; margin-top: 1rem; display: none;">Incorrect password.</div>
         </div>
-
+        
         <!-- Main Admin View -->
         <div id="admin-view">
             <button class="logout-btn" style="right: 5rem;" onclick="loadDashboard()">Refresh Data</button>
             <button class="logout-btn" onclick="logout()">Logout</button>
             
-            <h2>RSVP Summary</h2>
-            <div id="charts-container" class="charts-area"></div>
-
-            <h2 style="margin-top: 2rem;">Event Details</h2>
-            <div id="dashboard-container"></div>
-
-            <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
-
-            <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
-            <h2>Send Initial Invitations</h2>
-            <p>This will send an invitation email with a personalized link to the selected groups.</p>
-            <button id="invite-btn" class="btn" style="background-color: var(--accent-primary);" onclick="openInviteModal()">Select Recipients for Invitation</button>
-
-            <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
-            <h2>Send Reminder Emails</h2>
-            <p>This will send an email to the primary guest of each group that has not yet submitted an RSVP for any event.</p>
-            <button id="remind-btn" class="btn btn-danger" onclick="openReminderModal()">Select Recipients for Reminder</button>
-            
-            <div id="not-responded-container" style="margin-top: 1.5rem;">
-                <!-- Groups that have not responded will be listed here -->
+            <!-- Loader -->
+            <div id="dashboard-loader" style="display: none; text-align: center; padding: 4rem 2rem; flex-direction: column; align-items: center; justify-content: center;">
+                <div style="font-size: 1.5rem; color: var(--accent-primary); margin-bottom: 1rem;">⏳ Loading Dashboard...</div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">Fetching the latest RSVPs and event details.</div>
             </div>
-            
-            <div id="status"></div>
+
+            <!-- Content Container (Hidden while loading) -->
+            <div id="dashboard-content" style="display: none;">
+                <div id="countdown-container"></div>
+                
+                <!-- SECTION: RSVP Summary (Expanded by default) -->
+                <h2 class="section-toggle" onclick="toggleSection('section-summary', this)">
+                    <span class="section-icon">▼</span> RSVP Summary
+                </h2>
+                <div id="section-summary" style="display: block;">
+                    <div id="charts-container" class="charts-area"></div>
+                </div>
+                
+                <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+                
+                <!-- SECTION: Event Details -->
+                <h2 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <span class="section-toggle" onclick="toggleSection('section-details', this)">
+                        <span class="section-icon">▶</span> Event Details
+                    </span>
+                    <div style="font-size: 0.75em; display: flex; gap: 5px; font-weight: normal; align-items: center;">
+                        <select id="copy-email-filter" style="padding: 6px; border-radius: 4px; border: 1px solid var(--border-secondary); background-color: var(--bg-primary); color: var(--text-primary);">
+                            <option value="ALL">All Events</option>
+                        </select>
+                        <button class="btn" onclick="copyAttendeeEmails()" style="padding: 8px 12px; border-radius: 4px;">Copy Attending Emails</button>
+                    </div>
+                </h2>
+                <div id="section-details" style="display: none;">
+                    <input type="text" id="search-input" placeholder="Search guests by name..." onkeyup="filterSearch()">
+                    <div id="dashboard-container"></div>
+                </div>
+                
+                <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+                
+                <!-- SECTION: Dietary Restrictions & Notes -->
+                <h2 class="section-toggle" onclick="toggleSection('section-notes', this)">
+                    <span class="section-icon">▶</span> Dietary Restrictions & Notes
+                </h2>
+                <div id="section-notes" style="display: none;">
+                    <div id="notes-container"></div>
+                </div>
+
+                <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+                
+                <!-- SECTION: Send Initial Invitations -->
+                <h2 class="section-toggle" onclick="toggleSection('section-invites', this)">
+                    <span class="section-icon">▶</span> Send Initial Invitations
+                </h2>
+                <div id="section-invites" style="display: none;">
+                    <p>This will send an invitation email with a personalized link to the selected groups.</p>
+                    <button id="invite-btn" class="btn" onclick="openInviteModal()">Select Recipients for Invitation</button>
+                </div>
+                
+                <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+                
+                <!-- SECTION: Send Reminders -->
+                <h2 class="section-toggle" onclick="toggleSection('section-reminders', this)">
+                    <span class="section-icon">▶</span> Send Reminder Emails
+                </h2>
+                <div id="section-reminders" style="display: none;">
+                    <p>This will send an email to the primary guest of each group that has not yet submitted an RSVP.</p>
+                    <button id="remind-btn" class="btn btn-danger" onclick="openReminderModal()">Select Recipients for Reminder</button>
+                </div>
+                
+                <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+                
+                <!-- SECTION: Not Responded -->
+                <h2 class="section-toggle" onclick="toggleSection('section-not-responded', this)">
+                    <span class="section-icon">▶</span> Not Responded
+                </h2>
+                <div id="section-not-responded" style="display: none;">
+                    <div id="not-responded-container" style="margin-top: 1.5rem;"></div>
+                </div>
+                
+                <!-- Status Message Toast -->
+                <div id="status"></div>
+            </div>
         </div>
     </div>
 
@@ -205,13 +263,11 @@
                         Select All
                     </label>
                 </div>
-                <ul id="invite-recipient-list">
-                    <!-- Recipient list will be populated here -->
-                </ul>
+                <ul id="invite-recipient-list"></ul>
             </div>
             <div class="modal-footer">
-                <button class="btn" style="background-color: var(--border-secondary); color: var(--text-primary);" onclick="closeInviteModal()">Cancel</button>
-                <button id="send-invites-confirm" class="btn" style="background-color: var(--accent-primary);" onclick="sendInvites()">Send Invitations</button>
+                <button class="btn btn-secondary" onclick="closeInviteModal()">Cancel</button>
+                <button id="send-invites-confirm" class="btn" onclick="sendInvites()">Send Invitations</button>
             </div>
         </div>
     </div>
@@ -230,9 +286,7 @@
                         Select All
                     </label>
                 </div>
-                <ul id="reminder-recipient-list">
-                    <!-- Recipient list will be populated here -->
-                </ul>
+                <ul id="reminder-recipient-list"></ul>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeReminderModal()">Cancel</button>
@@ -243,37 +297,50 @@
 
     <script src="config.js"></script>
     <script>
-        let globalNotRespondedCache = []; // Cache for the modal
-        let globalAllGroupsCache = []; // Cache for the invitation modal
+        let globalNotRespondedCache = []; 
+        let globalAllGroupsCache = []; 
+        let globalEventsSummaryCache = {}; 
+        let globalNotRespondedList = []; 
 
-        // Store the password in session storage so we don't have to send it with every request
         const getAuth = () => ({ password: localStorage.getItem('adminPass') });
+
+        // Collapse/Expand Section Logic
+        function toggleSection(contentId, headerEl) {
+            const content = document.getElementById(contentId);
+            const icon = headerEl.querySelector('.section-icon');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                if (icon) icon.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                if (icon) icon.textContent = '▶';
+            }
+        }
 
         function showStatus(message, type = 'info') {
             const statusEl = document.getElementById('status');
             statusEl.textContent = message;
             statusEl.className = 'status-' + type;
             statusEl.style.display = 'block';
+            setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
         }
 
         async function apiCall(payload) {
             const response = await fetch(CONFIG.scriptUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain' }, // Use text/plain to avoid CORS preflight
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             });
+            
             if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
-                         
+            
             const rawText = await response.text();
             const result = JSON.parse(rawText); 
             
-            // --- FIX: Catch errors returned in the result object ---
             if (result.error) throw new Error(result.error);
             if (result.result === 'error') throw new Error(result.message || 'Server error occurred.');
-            // --------------------------------------------------------
-
+            
             if (result.status === 'unauthorized') {
-                // If token/password is ever invalid, force re-login
                 localStorage.removeItem('adminPass');
                 document.getElementById('login-view').style.display = 'block';
                 document.getElementById('admin-view').style.display = 'none';
@@ -288,10 +355,10 @@
             const loginError = document.getElementById('login-error');
             loginError.style.display = 'none';
             if (!password) return;
-
+            
             try {
                 await apiCall({ action: 'adminLogin', password: password });
-                localStorage.setItem('adminPass', password); // Store password for session
+                localStorage.setItem('adminPass', password);
                 document.getElementById('login-view').style.display = 'none';
                 document.getElementById('admin-view').style.display = 'block';
                 loadDashboard();
@@ -312,42 +379,44 @@
             const cachedPassword = localStorage.getItem('adminPass');
             const loginButton = document.querySelector('#login-view .btn');
             const passwordInput = document.getElementById('password');
-
+            
             if (cachedPassword) {
-                // Indicate that an automatic login attempt is in progress
                 loginButton.disabled = true;
                 loginButton.textContent = 'Logging in...';
                 passwordInput.disabled = true;
-
                 try {
-                    // Silently try to log in with the cached password
                     await apiCall({ action: 'adminLogin', password: cachedPassword });
                     document.getElementById('login-view').style.display = 'none';
                     document.getElementById('admin-view').style.display = 'block';
-                    // Reset button state in case user logs out later
                     loginButton.disabled = false;
                     loginButton.textContent = 'Login';
                     passwordInput.disabled = false;
                     loadDashboard();
                 } catch (err) {
-                    // Cached password was invalid, clear it and show login
                     logout();
                 }
             }
         }
-        // Run on page load
+
         document.addEventListener('DOMContentLoaded', checkCachedLogin);
 
         async function loadDashboard() {
+            // Show loader, hide dashboard content
+            document.getElementById('dashboard-loader').style.display = 'flex';
+            document.getElementById('dashboard-content').style.display = 'none';
+            
             const container = document.getElementById('dashboard-container');
-            container.innerHTML = '<div id="loader" style="display: block;">Loading...</div>';
             document.getElementById('charts-container').innerHTML = '';
+            document.getElementById('search-input').value = '';
+            
             try {
                 const data = await apiCall({ action: 'getDashboard', auth: getAuth() });
                 const { guests: rawGuests, events: rawEvents } = data;
-                container.innerHTML = ''; // Clear loader
+                container.innerHTML = ''; 
+                
+                renderCountdown(rawEvents);
 
-                // --- 1. Process Raw Data into Usable Structures (Heavy Lifting) ---
+                // Process Raw Data
                 const groups = {};
                 rawGuests.forEach(guest => {
                     const groupId = guest.Group_ID;
@@ -355,7 +424,7 @@
                     if (!groups[groupId]) {
                         groups[groupId] = {
                             id: groupId,
-                            primaryGuest: '', // Will be set after sorting
+                            primaryGuest: '',
                             guests: [],
                             hasResponded: false
                         };
@@ -366,13 +435,11 @@
                     }
                 });
 
-                // Determine the primary guest for each group based on the lowest Guest_ID
                 Object.values(groups).forEach(group => {
                     if (!group.guests || group.guests.length === 0) {
                         group.primaryGuest = 'Unnamed Group';
                         return;
                     }
-                    // Sort by Guest_ID numerically to handle cases like 'G-2' vs 'G-10'
                     group.guests.sort((a, b) => {
                         const numA = parseInt(String(a.Guest_ID || '0').split('-').pop(), 10);
                         const numB = parseInt(String(b.Guest_ID || '0').split('-').pop(), 10);
@@ -380,6 +447,8 @@
                     });
                     group.primaryGuest = group.guests[0].Full_Name;
                 });
+                
+                renderNotes(groups);
 
                 const eventsSummary = {};
                 rawEvents.forEach(event => {
@@ -393,35 +462,32 @@
                 });
 
                 const globalNotResponded = [];
-                globalNotRespondedCache = []; // Reset cache
-                globalAllGroupsCache = Object.values(groups); // Store all groups for the invite modal
+                globalNotRespondedCache = []; 
+                globalAllGroupsCache = Object.values(groups); 
 
                 Object.values(groups).forEach(group => {
                     const primaryGuest = group.guests[0];
                     const allowedEventsStr = primaryGuest.Allowed_Events || "";
-
+                    
                     if (!group.hasResponded) {
                         globalNotResponded.push(group);
                     }
                     globalNotRespondedCache = globalNotResponded;
-
+                    
                     for (const eventId in eventsSummary) {
                         if (allowedEventsStr.includes(eventId)) {
                             if (group.hasResponded) {
                                 const attendeeNames = new Set();
                                 let peopleInRsvp = 0;
-
                                 group.guests.forEach(guest => {
                                     try {
                                         const rsvps = JSON.parse(guest.RSVPs);
                                         const eventRsvp = rsvps[eventId];
-
                                         if (eventRsvp) {
-                                            peopleInRsvp++; // The named guest
+                                            peopleInRsvp++; 
                                             if (eventRsvp.status === 'Attending') {
                                                 attendeeNames.add(guest.Full_Name);
                                             }
-
                                             if (eventRsvp.additionalGuests && Array.isArray(eventRsvp.additionalGuests)) {
                                                 peopleInRsvp += eventRsvp.additionalGuests.length;
                                                 eventRsvp.additionalGuests.forEach(ag => {
@@ -435,16 +501,15 @@
                                         console.error(`Could not parse RSVPs for guest ${guest.Full_Name}:`, guest.RSVPs, e);
                                     }
                                 });
-
                                 const attendeesArray = Array.from(attendeeNames);
                                 const attendingCount = attendeesArray.length;
                                 const decliningCount = peopleInRsvp - attendingCount;
-
-                                eventsSummary[eventId].respondedGroups.push({ 
-                                    ...group, 
-                                    attendees: attendeesArray,
-                                    attendingCount: attendingCount,
-                                    decliningCount: decliningCount
+                                
+                                eventsSummary[eventId].respondedGroups.push({
+                                     ...group,
+                                     attendees: attendeesArray,
+                                     attendingCount: attendingCount,
+                                     decliningCount: decliningCount
                                 });
                             } else {
                                 let potentialInvitees = 0;
@@ -460,10 +525,20 @@
                     }
                 });
 
-                // --- 2. Render Charts ---
+                globalEventsSummaryCache = eventsSummary;
+                globalNotRespondedList = globalNotResponded;
+
+                // Populate Copy Emails Dropdown
+                let copyEmailHtml = '<option value="ALL">All Events</option>';
+                for (const evtId in eventsSummary) {
+                    copyEmailHtml += `<option value="${evtId}">${eventsSummary[evtId].name}</option>`;
+                }
+                const copyFilterEl = document.getElementById('copy-email-filter');
+                if (copyFilterEl) copyFilterEl.innerHTML = copyEmailHtml;
+
                 renderCharts(eventsSummary);
 
-                // --- 3. Render the UI from Processed Data ---
+                // Render Event Accordions
                 Object.values(eventsSummary).forEach(event => {
                     const totalAttending = event.respondedGroups.reduce((sum, group) => sum + group.attendees.length, 0);
                     const totalInvited = event.respondedGroups.length + event.notRespondedGroups.length;
@@ -485,10 +560,9 @@
                         </div>
                     `;
                     container.appendChild(item);
-
+                    
                     const respondedList = document.getElementById(`responded-${event.id}`);
                     if (event.respondedGroups.length > 0) {
-                        // Sort groups with attendees to the top
                         event.respondedGroups.sort((a, b) => b.attendees.length - a.attendees.length);
                         event.respondedGroups.forEach(group => respondedList.appendChild(createGroupListItem(group, true)));
                     } else {
@@ -496,17 +570,22 @@
                     }
                 });
 
+                // Render Not Responded with Event Filter
                 const notRespondedContainer = document.getElementById('not-responded-container');
-                notRespondedContainer.innerHTML = `<h3>Not Responded (${globalNotResponded.length})</h3>`;
-                const notRespondedList = document.createElement('ul');
-                if (globalNotResponded.length > 0) {
-                    globalNotResponded.forEach(group => notRespondedList.appendChild(createGroupListItem(group, false)));
-                } else {
-                    notRespondedList.innerHTML = '<li class="no-attendees">All invited groups have responded. Great job!</li>';
+                let filterHtml = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
+                        <h3 id="not-responded-header" style="margin: 0;">Not Responded (${globalNotResponded.length})</h3>
+                        <select id="not-responded-filter" onchange="filterNotResponded(this.value)" style="padding: 6px; border-radius: 4px; border: 1px solid var(--border-secondary); background-color: var(--bg-primary); color: var(--text-primary); font-size: 0.9em;">
+                            <option value="ALL">All Events</option>
+                `;
+                for (const evtId in eventsSummary) {
+                    filterHtml += `<option value="${evtId}">${eventsSummary[evtId].name}</option>`;
                 }
-                notRespondedContainer.appendChild(notRespondedList);
+                filterHtml += `</select></div><ul id="not-responded-list" style="padding-left: 0;"></ul>`;
+                notRespondedContainer.innerHTML = filterHtml;
+                filterNotResponded('ALL');
 
-                // --- 4. Add Event Listeners for Accordions ---
+                // Add Event Listeners for Accordions
                 document.querySelectorAll('.accordion-header').forEach(header => {
                     const toggle = () => {
                         const content = header.nextElementSibling;
@@ -517,27 +596,159 @@
                     header.addEventListener('keydown', e => (e.key === 'Enter' || e.key === ' ') && toggle());
                 });
 
+                // Hide loader, show dashboard content
+                document.getElementById('dashboard-loader').style.display = 'none';
+                document.getElementById('dashboard-content').style.display = 'block';
+
             } catch (err) {
+                // Hide loader and show error if it fails
+                document.getElementById('dashboard-loader').style.display = 'none';
+                document.getElementById('dashboard-content').style.display = 'block';
                 container.innerHTML = '';
                 alert('Error loading summary: ' + err.message);
             }
+        }
+
+        // Feature: Search Filter
+        function filterSearch() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            document.querySelectorAll('.group-item').forEach(item => {
+                if (item.textContent.toLowerCase().includes(query)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Feature: Countdown Banner
+        function renderCountdown(events) {
+            const container = document.getElementById('countdown-container');
+            if (!events || events.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            const now = new Date().getTime();
+            let earliest = null;
+            
+            events.forEach(e => {
+                if (e.DateTime) {
+                    const evtDate = new Date(e.DateTime).getTime();
+                    if (evtDate > now && (!earliest || evtDate < earliest)) {
+                        earliest = evtDate;
+                    }
+                }
+            });
+            
+            if (earliest) {
+                const days = Math.ceil((earliest - now) / (1000 * 60 * 60 * 24));
+                let text = days === 1 ? '1 Day' : `${days} Days`;
+                if (days === 0) text = 'Today!';
+                
+                container.innerHTML = `
+                    <div style="background-color: var(--status-info-bg); color: var(--status-info-text); padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 2rem; font-size: 1.1em; border: 1px solid var(--status-info-border);">
+                        <strong>🎉 ${text} until the first event!</strong>
+                    </div>`;
+            } else {
+                container.innerHTML = '';
+            }
+        }
+
+        // Feature: Dietary Restrictions & Notes Panel
+        function renderNotes(groups) {
+            const container = document.getElementById('notes-container');
+            let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
+            let hasNotes = false;
+            
+            Object.values(groups).forEach(group => {
+                let groupNote = null;
+                group.guests.forEach(g => {
+                    if (g.Notes && String(g.Notes).trim() !== '') {
+                        groupNote = String(g.Notes).trim();
+                    }
+                });
+                
+                if (groupNote) {
+                    hasNotes = true;
+                    html += `
+                        <li class="group-item" style="background-color: var(--highlight-row); border-left: 4px solid #f39c12; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
+                            <strong style="color: var(--text-header);">${group.primaryGuest}:</strong> 
+                            <span style="color: var(--text-primary); margin-left: 8px;">${groupNote}</span>
+                        </li>`;
+                }
+            });
+            html += '</ul>';
+            
+            if (!hasNotes) {
+                html = '<p class="no-attendees">No notes or dietary restrictions submitted yet.</p>';
+            }
+            container.innerHTML = html;
+        }
+
+        // Feature: Copy Attending Emails
+        function copyAttendeeEmails() {
+            const eventIdFilter = document.getElementById('copy-email-filter').value;
+            const emails = new Set();
+            
+            for (const eventId in globalEventsSummaryCache) {
+                if (eventIdFilter === 'ALL' || eventIdFilter === eventId) {
+                    globalEventsSummaryCache[eventId].respondedGroups.forEach(group => {
+                        if (group.attendingCount > 0) { 
+                            group.guests.forEach(g => {
+                                if (g.Email && String(g.Email).trim() !== '') {
+                                    emails.add(String(g.Email).trim());
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+            
+            const emailList = Array.from(emails).join(', ');
+            if (emailList) {
+                navigator.clipboard.writeText(emailList).then(() => showStatus('Successfully copied attendee emails to clipboard!', 'success'));
+            } else {
+                showStatus('No attendee emails found for this selection.', 'info');
+            }
+        }
+
+        function filterNotResponded(eventId) {
+            const listContainer = document.getElementById('not-responded-list');
+            const header = document.getElementById('not-responded-header');
+            listContainer.innerHTML = '';
+            
+            let groupsToShow = [];
+            if (eventId === 'ALL') {
+                groupsToShow = globalNotRespondedList;
+                header.innerText = `Not Responded (${groupsToShow.length})`;
+            } else {
+                groupsToShow = globalEventsSummaryCache[eventId].notRespondedGroups;
+                header.innerText = `Not Responded (${groupsToShow.length})`;
+            }
+            
+            if (groupsToShow.length > 0) {
+                groupsToShow.forEach(group => listContainer.appendChild(createGroupListItem(group, false)));
+            } else {
+                listContainer.innerHTML = '<li class="no-attendees">All invited groups have responded. Great job!</li>';
+            }
+            
+            filterSearch();
         }
 
         function renderCharts(eventsSummary) {
             const chartsContainer = document.getElementById('charts-container');
             let groupChartHtml = '<h3>Group Response Status</h3>';
             let peopleChartHtml = '<h3 style="margin-top: 2rem;">Individual RSVP Status</h3>';
-
+            
             for (const eventId in eventsSummary) {
                 const event = eventsSummary[eventId];
                 const respondedCount = event.respondedGroups.length;
                 const notRespondedCount = event.notRespondedGroups.length;
                 const totalGroups = respondedCount + notRespondedCount;
-
-                // Chart 1: Group Status
+                
                 const respondedPercent = totalGroups > 0 ? (respondedCount / totalGroups) * 100 : 0;
                 const notRespondedPercent = totalGroups > 0 ? (notRespondedCount / totalGroups) * 100 : 0;
-
+                
                 groupChartHtml += `
                     <div class="chart-container">
                         <span class="chart-title">${event.name}</span>
@@ -547,17 +758,16 @@
                         </div>
                     </div>
                 `;
-
-                // Chart 2: People Status
+                
                 const attendingCount = event.respondedGroups.reduce((sum, group) => sum + (group.attendingCount || 0), 0);
                 const declinedCount = event.respondedGroups.reduce((sum, group) => sum + (group.decliningCount || 0), 0);
                 const noResponseCount = event.notRespondedGroups.reduce((sum, group) => sum + (group.noResponseCount || 0), 0);
                 const totalPeople = attendingCount + declinedCount + noResponseCount;
-
+                
                 const attendingPercent = totalPeople > 0 ? (attendingCount / totalPeople) * 100 : 0;
                 const declinedPercent = totalPeople > 0 ? (declinedCount / totalPeople) * 100 : 0;
                 const noResponsePercent = totalPeople > 0 ? (noResponseCount / totalPeople) * 100 : 0;
-
+                
                 peopleChartHtml += `
                     <div class="chart-container">
                         <span class="chart-title">${event.name}</span>
@@ -569,37 +779,33 @@
                     </div>
                 `;
             }
-
-            groupChartHtml += `
-                <div class="chart-legend"><div class="legend-item"><div class="legend-color segment-responded"></div> Responded</div><div class="legend-item"><div class="legend-color segment-no-response"></div> No Response</div></div>`;
-
-            peopleChartHtml += `
-                <div class="chart-legend"><div class="legend-item"><div class="legend-color segment-attending"></div> Attending</div><div class="legend-item"><div class="legend-color segment-declined"></div> Declined</div><div class="legend-item"><div class="legend-color segment-no-response"></div> No Response</div></div>`;
-
+            
+            groupChartHtml += `<div class="chart-legend"><div class="legend-item"><div class="legend-color segment-responded"></div> Responded</div><div class="legend-item"><div class="legend-color segment-no-response"></div> No Response</div></div>`;
+            peopleChartHtml += `<div class="chart-legend"><div class="legend-item"><div class="legend-color segment-attending"></div> Attending</div><div class="legend-item"><div class="legend-color segment-declined"></div> Declined</div><div class="legend-item"><div class="legend-color segment-no-response"></div> No Response</div></div>`;
+            
             chartsContainer.innerHTML = groupChartHtml + peopleChartHtml;
         }
 
-
         function createGroupListItem(group, showAttendees) {
             const li = document.createElement('li');
+            li.className = 'group-item'; 
+            
             const currentPath = new URL(window.location.href).pathname;
             const invitationUrl = `${currentPath.substring(0, currentPath.lastIndexOf('/'))}/index.html?id=${group.id}`;
             const allGuestNames = group.guests.map(g => g.Full_Name);
             const guestCount = allGuestNames.length;
             const attendeesText = showAttendees ? `<span class="attendee-list">${group.attendees.length > 0 ? group.attendees.join(', ') : '0 Attending'}</span>` : '';
-
+            
             let guestListHtml = '';
             if (showAttendees) {
-                // Show status for each guest in responded groups
                 guestListHtml = allGuestNames.map(name => `<li>${group.attendees.includes(name) ? '✅' : '❌'} ${name}</li>`).join('');
             } else {
-                // Just show names for non-responded groups
                 guestListHtml = allGuestNames.map(name => `<li>${name}</li>`).join('');
             }
-
+            
             li.innerHTML = `
                 <div class="accordion-header" role="button" tabindex="0" aria-expanded="false" style="padding: 0.5rem 1rem; font-size: 0.95em;">
-                    <a href="${invitationUrl}" target="_blank" onclick="event.stopPropagation()">
+                    <a href="${invitationUrl}" target="_blank" onclick="event.stopPropagation()" style="color: var(--accent-primary);">
                         <strong>${group.primaryGuest}</strong> (${guestCount} ${guestCount > 1 ? 'guests' : 'guest'})
                     </a>
                     ${attendeesText}
@@ -608,7 +814,7 @@
                     <ul>${guestListHtml}</ul>
                 </div>
             `;
-
+            
             const header = li.querySelector('.accordion-header');
             header.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -619,9 +825,89 @@
             return li;
         }
 
+        // --- INVITATION MODAL LOGIC ---
+        function openInviteModal() {
+            document.getElementById('filter-unsent-invites').checked = true;
+            document.getElementById('select-all-invites').checked = false;
+            renderInviteList();
+            document.getElementById('invite-modal').style.display = 'flex';
+        }
+
+        function renderInviteList() {
+            const listEl = document.getElementById('invite-recipient-list');
+            const showOnlyUnsent = document.getElementById('filter-unsent-invites').checked;
+            const selectAllCheckbox = document.getElementById('select-all-invites');
+            
+            listEl.innerHTML = '';
+            selectAllCheckbox.checked = false;
+
+            const filteredGroups = globalAllGroupsCache.filter(group => {
+                const isSent = group.guests.some(g => g.Invite_Sent && String(g.Invite_Sent).trim().toLowerCase() === 'yes');
+                if (showOnlyUnsent && isSent) return false;
+                return true; 
+            });
+
+            if (filteredGroups.length === 0) {
+                listEl.innerHTML = '<li class="no-attendees">No groups match the current filter.</li>';
+                document.getElementById('send-invites-confirm').classList.add('hidden');
+                selectAllCheckbox.disabled = true;
+            } else {
+                filteredGroups.forEach(group => {
+                    const li = document.createElement('li');
+                    const isSent = group.guests.some(g => g.Invite_Sent && String(g.Invite_Sent).trim().toLowerCase() === 'yes');
+                    const badgeHtml = isSent ? '<span style="margin-left: 8px; font-size: 0.75em; background: var(--status-info-bg); color: var(--status-info-text); padding: 2px 6px; border-radius: 4px;">Sent</span>' : '';
+
+                    li.innerHTML = `
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" class="invite-checkbox" value="${group.id}">
+                            <span><strong>${group.primaryGuest}</strong> (${group.guests.length} guests)${badgeHtml}</span>
+                        </label>
+                    `;
+                    listEl.appendChild(li);
+                });
+                document.getElementById('send-invites-confirm').classList.remove('hidden');
+                selectAllCheckbox.disabled = false;
+            }
+        }
+
+        function closeInviteModal() {
+            document.getElementById('invite-modal').style.display = 'none';
+        }
+
+        function toggleAllInviteCheckboxes(checked) {
+            document.querySelectorAll('.invite-checkbox').forEach(chk => chk.checked = checked);
+        }
+
+        async function sendInvites() {
+            const selectedGroupIds = Array.from(document.querySelectorAll('.invite-checkbox:checked')).map(chk => chk.value);
+            if (selectedGroupIds.length === 0) {
+                showStatus('No recipients selected.', 'info');
+                return;
+            }
+
+            const btn = document.getElementById('send-invites-confirm');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            showStatus('Sending invitation emails... (This may take a moment)', 'info');
+
+            try {
+                const result = await apiCall({ action: 'sendInvitations', auth: getAuth(), groupIds: selectedGroupIds });
+                showStatus(result && result.message ? result.message : 'Invitations sent successfully!', 'success');
+                closeInviteModal();
+                loadDashboard(); 
+            } catch (err) {
+                showStatus('Error: ' + (err.message || 'An unknown error occurred.'), 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send Invitations';
+            }
+        }
+
+        // --- REMINDER MODAL LOGIC ---
         function openReminderModal() {
             const listEl = document.getElementById('reminder-recipient-list');
             listEl.innerHTML = '';
+            
             if (globalNotRespondedCache.length === 0) {
                 listEl.innerHTML = '<li>All groups have responded. No reminders to send.</li>';
                 document.getElementById('send-reminders-confirm').classList.add('hidden');
@@ -651,120 +937,25 @@
 
         async function sendReminders() {
             const selectedGroupIds = Array.from(document.querySelectorAll('.reminder-checkbox:checked')).map(chk => chk.value);
-
             if (selectedGroupIds.length === 0) {
                 showStatus('No recipients selected.', 'info');
                 return;
             }
-
+            
             const btn = document.getElementById('send-reminders-confirm');
             btn.disabled = true;
             btn.textContent = 'Sending...';
             showStatus('Sending reminder emails...', 'info');
-
+            
             try {
                 const result = await apiCall({ action: 'sendReminders', auth: getAuth(), groupIds: selectedGroupIds });
-                showStatus(result.message, 'success');
+                showStatus(result && result.message ? result.message : 'Reminders sent successfully!', 'success');
                 closeReminderModal();
-            } catch (err) {
-                showStatus('Error: ' + err.message, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Send Reminders';
-            }
-        }
-
-        function openInviteModal() {
-            // Reset filters and checkboxes to default state when opening
-            document.getElementById('filter-unsent-invites').checked = true;
-            document.getElementById('select-all-invites').checked = false;
-            
-            renderInviteList();
-            document.getElementById('invite-modal').style.display = 'flex';
-        }
-
-        function renderInviteList() {
-            const listEl = document.getElementById('invite-recipient-list');
-            const showOnlyUnsent = document.getElementById('filter-unsent-invites').checked;
-            const selectAllCheckbox = document.getElementById('select-all-invites');
-            
-            listEl.innerHTML = '';
-            selectAllCheckbox.checked = false;
-
-            // Filter groups based on the Invite_Sent column in the Google Sheet
-            const filteredGroups = globalAllGroupsCache.filter(group => {
-                // Check if any guest in this group has "Yes" in the Invite_Sent column
-                const isSent = group.guests.some(g => g.Invite_Sent && String(g.Invite_Sent).trim().toLowerCase() === 'yes');
-                
-                if (showOnlyUnsent && isSent) {
-                    return false; // Hide sent invites if filter is ON
-                }
-                return true; // Show otherwise
-            });
-
-            if (filteredGroups.length === 0) {
-                listEl.innerHTML = '<li class="no-attendees">No groups match the current filter.</li>';
-                document.getElementById('send-invites-confirm').classList.add('hidden');
-                selectAllCheckbox.disabled = true;
-            } else {
-                filteredGroups.forEach(group => {
-                    const li = document.createElement('li');
-                    
-                    // Determine if we should show a "Sent" badge
-                    const isSent = group.guests.some(g => g.Invite_Sent && String(g.Invite_Sent).trim().toLowerCase() === 'yes');
-                    const badgeHtml = isSent ? '<span style="margin-left: 8px; font-size: 0.75em; background: var(--status-info-bg); color: var(--status-info-text); padding: 2px 6px; border-radius: 4px;">Sent</span>' : '';
-
-                    li.innerHTML = `
-                        <label style="display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" class="invite-checkbox" value="${group.id}">
-                            <span><strong>${group.primaryGuest}</strong> (${group.guests.length} guests)${badgeHtml}</span>
-                        </label>
-                    `;
-                    listEl.appendChild(li);
-                });
-                document.getElementById('send-invites-confirm').classList.remove('hidden');
-                selectAllCheckbox.disabled = false;
-            }
-        }
-
-        function closeInviteModal() {
-            document.getElementById('invite-modal').style.display = 'none';
-        }
-
-        function toggleAllInviteCheckboxes(checked) {
-            document.querySelectorAll('.invite-checkbox').forEach(chk => chk.checked = checked);
-        }
-
-        function closeInviteModal() {
-            document.getElementById('invite-modal').style.display = 'none';
-        }
-
-        function toggleAllInviteCheckboxes(checked) {
-            document.querySelectorAll('.invite-checkbox').forEach(chk => chk.checked = checked);
-        }
-
-        async function sendInvites() {
-            const selectedGroupIds = Array.from(document.querySelectorAll('.invite-checkbox:checked')).map(chk => chk.value);
-            if (selectedGroupIds.length === 0) {
-                showStatus('No recipients selected.', 'info');
-                return;
-            }
-
-            const btn = document.getElementById('send-invites-confirm');
-            btn.disabled = true;
-            btn.textContent = 'Sending...';
-            showStatus('Sending invitation emails... (This may take a moment)', 'info');
-
-            try {
-                const result = await apiCall({ action: 'sendInvitations', auth: getAuth(), groupIds: selectedGroupIds });
-                showStatus(result && result.message ? result.message : 'Invitations sent successfully!', 'success');
-                closeInviteModal();
-                loadDashboard(); // Refresh data to show updated "Sent" status
             } catch (err) {
                 showStatus('Error: ' + (err.message || 'An unknown error occurred.'), 'error');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Send Invitations';
+                btn.textContent = 'Send Reminders';
             }
         }
 
