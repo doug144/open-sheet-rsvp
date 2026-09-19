@@ -156,7 +156,9 @@
 
         <!-- Main Admin View -->
         <div id="admin-view">
+            <button class="logout-btn" style="right: 5rem;" onclick="loadDashboard()">Refresh Data</button>
             <button class="logout-btn" onclick="logout()">Logout</button>
+            
             <h2>RSVP Summary</h2>
             <div id="charts-container" class="charts-area"></div>
 
@@ -165,6 +167,12 @@
 
             <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
 
+            <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+            <h2>Send Initial Invitations</h2>
+            <p>This will send an invitation email with a personalized link to the selected groups.</p>
+            <button id="invite-btn" class="btn" style="background-color: var(--accent-primary);" onclick="openInviteModal()">Select Recipients for Invitation</button>
+
+            <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
             <h2>Send Reminder Emails</h2>
             <p>This will send an email to the primary guest of each group that has not yet submitted an RSVP for any event.</p>
             <button id="remind-btn" class="btn btn-danger" onclick="openReminderModal()">Select Recipients for Reminder</button>
@@ -174,6 +182,37 @@
             </div>
             
             <div id="status"></div>
+        </div>
+    </div>
+
+    <!-- Invitation Modal -->
+    <div id="invite-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Invitation Recipients</h3>
+                <button class="modal-close" onclick="closeInviteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-filter" style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-primary);">
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: bold; color: var(--accent-primary);">
+                        <input type="checkbox" id="filter-unsent-invites" checked onchange="renderInviteList()">
+                        Show only unsent invitations
+                    </label>
+                </div>
+                <div class="modal-select-all">
+                    <label>
+                        <input type="checkbox" id="select-all-invites" onchange="toggleAllInviteCheckboxes(this.checked)">
+                        Select All
+                    </label>
+                </div>
+                <ul id="invite-recipient-list">
+                    <!-- Recipient list will be populated here -->
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" style="background-color: var(--border-secondary); color: var(--text-primary);" onclick="closeInviteModal()">Cancel</button>
+                <button id="send-invites-confirm" class="btn" style="background-color: var(--accent-primary);" onclick="sendInvites()">Send Invitations</button>
+            </div>
         </div>
     </div>
 
@@ -205,6 +244,8 @@
     <script src="config.js"></script>
     <script>
         let globalNotRespondedCache = []; // Cache for the modal
+        let globalAllGroupsCache = []; // Cache for the invitation modal
+
         // Store the password in session storage so we don't have to send it with every request
         const getAuth = () => ({ password: localStorage.getItem('adminPass') });
 
@@ -222,14 +263,15 @@
                 body: JSON.stringify(payload)
             });
             if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
-            
-            // --- DEBUGGING: Log the raw server response ---
+                         
             const rawText = await response.text();
-            console.log("Raw response from server:", rawText);
-            // --- END DEBUGGING ---
-
-            const result = JSON.parse(rawText); // Parse the text we logged
+            const result = JSON.parse(rawText); 
+            
+            // --- FIX: Catch errors returned in the result object ---
             if (result.error) throw new Error(result.error);
+            if (result.result === 'error') throw new Error(result.message || 'Server error occurred.');
+            // --------------------------------------------------------
+
             if (result.status === 'unauthorized') {
                 // If token/password is ever invalid, force re-login
                 localStorage.removeItem('adminPass');
@@ -352,6 +394,8 @@
 
                 const globalNotResponded = [];
                 globalNotRespondedCache = []; // Reset cache
+                globalAllGroupsCache = Object.values(groups); // Store all groups for the invite modal
+
                 Object.values(groups).forEach(group => {
                     const primaryGuest = group.guests[0];
                     const allowedEventsStr = primaryGuest.Allowed_Events || "";
@@ -627,6 +671,100 @@
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Send Reminders';
+            }
+        }
+
+        function openInviteModal() {
+            // Reset filters and checkboxes to default state when opening
+            document.getElementById('filter-unsent-invites').checked = true;
+            document.getElementById('select-all-invites').checked = false;
+            
+            renderInviteList();
+            document.getElementById('invite-modal').style.display = 'flex';
+        }
+
+        function renderInviteList() {
+            const listEl = document.getElementById('invite-recipient-list');
+            const showOnlyUnsent = document.getElementById('filter-unsent-invites').checked;
+            const selectAllCheckbox = document.getElementById('select-all-invites');
+            
+            listEl.innerHTML = '';
+            selectAllCheckbox.checked = false;
+
+            // Filter groups based on the Invite_Sent column in the Google Sheet
+            const filteredGroups = globalAllGroupsCache.filter(group => {
+                // Check if any guest in this group has "Yes" in the Invite_Sent column
+                const isSent = group.guests.some(g => g.Invite_Sent && String(g.Invite_Sent).trim().toLowerCase() === 'yes');
+                
+                if (showOnlyUnsent && isSent) {
+                    return false; // Hide sent invites if filter is ON
+                }
+                return true; // Show otherwise
+            });
+
+            if (filteredGroups.length === 0) {
+                listEl.innerHTML = '<li class="no-attendees">No groups match the current filter.</li>';
+                document.getElementById('send-invites-confirm').classList.add('hidden');
+                selectAllCheckbox.disabled = true;
+            } else {
+                filteredGroups.forEach(group => {
+                    const li = document.createElement('li');
+                    
+                    // Determine if we should show a "Sent" badge
+                    const isSent = group.guests.some(g => g.Invite_Sent && String(g.Invite_Sent).trim().toLowerCase() === 'yes');
+                    const badgeHtml = isSent ? '<span style="margin-left: 8px; font-size: 0.75em; background: var(--status-info-bg); color: var(--status-info-text); padding: 2px 6px; border-radius: 4px;">Sent</span>' : '';
+
+                    li.innerHTML = `
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" class="invite-checkbox" value="${group.id}">
+                            <span><strong>${group.primaryGuest}</strong> (${group.guests.length} guests)${badgeHtml}</span>
+                        </label>
+                    `;
+                    listEl.appendChild(li);
+                });
+                document.getElementById('send-invites-confirm').classList.remove('hidden');
+                selectAllCheckbox.disabled = false;
+            }
+        }
+
+        function closeInviteModal() {
+            document.getElementById('invite-modal').style.display = 'none';
+        }
+
+        function toggleAllInviteCheckboxes(checked) {
+            document.querySelectorAll('.invite-checkbox').forEach(chk => chk.checked = checked);
+        }
+
+        function closeInviteModal() {
+            document.getElementById('invite-modal').style.display = 'none';
+        }
+
+        function toggleAllInviteCheckboxes(checked) {
+            document.querySelectorAll('.invite-checkbox').forEach(chk => chk.checked = checked);
+        }
+
+        async function sendInvites() {
+            const selectedGroupIds = Array.from(document.querySelectorAll('.invite-checkbox:checked')).map(chk => chk.value);
+            if (selectedGroupIds.length === 0) {
+                showStatus('No recipients selected.', 'info');
+                return;
+            }
+
+            const btn = document.getElementById('send-invites-confirm');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            showStatus('Sending invitation emails... (This may take a moment)', 'info');
+
+            try {
+                const result = await apiCall({ action: 'sendInvitations', auth: getAuth(), groupIds: selectedGroupIds });
+                showStatus(result && result.message ? result.message : 'Invitations sent successfully!', 'success');
+                closeInviteModal();
+                loadDashboard(); // Refresh data to show updated "Sent" status
+            } catch (err) {
+                showStatus('Error: ' + (err.message || 'An unknown error occurred.'), 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send Invitations';
             }
         }
 

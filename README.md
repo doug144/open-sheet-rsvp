@@ -128,21 +128,22 @@ By using random IDs, it becomes computationally infeasible for anyone to guess a
         4.  Click **Save and Deploy**.
 
 ## 📧 Sending Email Invitations
-You can batch-send personalized HTML emails with dynamic links directly from Apps Script:
+The admin panel includes a built-in tool to distribute personalized email invitations directly to your guest list.
 
-1. Populate your Guests tab with guest names, emails, assigned Group_IDs, and Allowed_Events.
+### How to Send Invitations:
 
-1. Open Apps Script (Extensions ➔ Apps Script) from your google sheet.
+1. Open the Admin Panel and scroll down to the Send Initial Invitations section.
+1. Click Select Recipients for Invitation to open the modal.
+1. Select the checkboxes next to the groups you wish to invite.
 
-1. Select the sendInvitations function in the editor toolbar and click Run.
+   Smart Filtering: By default, the modal checks your Google Sheet's Invite_Sent column and hides any groups that have already received an invite. If you uncheck "Show only unsent invitations" to view the full list, previously invited groups will be clearly marked with a "Sent" badge to prevent accidental double-sending.
+1. Click Send Invitations and wait for the confirmation message.
 
-1. The script will:
+### How the System Handles Group Emails:
 
-    - Generate a personalized link (https://your-site.com?id=a8a2e518-d39e-4b2b-9d1a-f8e7c6b0a9c4).
-
-    - Send the invite via your GMail account.
-
-    - Update the Invite_Sent column in your spreadsheet to Yes to prevent duplicate emails.
+- **Combined Recipients**: If a family or group has multiple email addresses configured in the Google Sheet, the system will send a single unified email delivered to all addresses associated with that group simultaneously.
+- **Personalized Greetings**: The email greeting automatically aggregates and naturally formats the names of all invited members within the group (e.g., "Hello Alice, Bob, and Charlie,").
+- **Automatic Tracking**: Once an invitation is successfully dispatched to at least one email address in a group, the system automatically updates the Invite_Sent column to "Yes" for every member of that group in the Google Sheet.
 
 ## 📁 Repository Structure
 ```text

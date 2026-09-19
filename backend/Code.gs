@@ -152,6 +152,11 @@ function doPost(e) {
       if (payload.action === 'getDashboard') {
         return createJsonResponse({ status: 'success', data: getAdminDashboardData() });
       }
+      
+      if (payload.action === 'sendInvitations') {
+        return createJsonResponse({ status: 'success', data: { message: sendInvitations(payload.groupIds) } });
+      }
+
       if (payload.action === 'sendReminders') {
         return createJsonResponse({ status: 'success', data: { message: sendReminderEmails(payload.groupIds) } });
       }
@@ -539,6 +544,135 @@ function getAdminDashboardData() {
     guests: guests,
     events: events
   };
+}
+
+/**
+ * Sends initial invitation emails to groups.
+ * @param {Array<string>} [groupIdsToSend] Optional array of Group IDs to send invites to. If not provided, sends to all groups.
+ * @returns {string} A summary of the action taken.
+ */
+function sendInvitations(groupIdsToSend) {
+  var config = getScriptConfig();
+  if (!config.sendEmails) {
+    var logMsg = "Email sending is disabled in Script Properties. No invitations sent.";
+    Logger.log(logMsg);
+    return logMsg;
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var globalConfig = getGlobalConfig(ss);
+  var eventTitle = globalConfig.event_title || "Your Celebration";
+  var emailSignature = globalConfig.email_signature || "The Family";
+  var websiteUrl = config.websiteUrl;
+
+  var guestsSheet = ss.getSheetByName("Guests");
+  if (!guestsSheet) throw new Error("'Guests' sheet not found.");
+  
+  var guestsList = sheetToObjects(guestsSheet);
+  var headers = guestsSheet.getDataRange().getValues()[0];
+  var inviteSentCol = headers.indexOf("Invite_Sent");
+
+  // Group guests and collect ALL names, emails, and sheet rows
+  var groupsToInvite = {}; 
+  guestsList.forEach(function(guest) {
+    var groupId = guest.Group_ID ? guest.Group_ID.toString().trim() : "";
+    if (!groupIdsToSend || !groupIdsToSend.includes(groupId)) return;
+    
+    var email = guest.Email ? guest.Email.toString().trim() : "";
+    var fullName = guest.Full_Name ? guest.Full_Name.toString().trim() : "Guest";
+    
+    if (groupId) {
+      if (!groupsToInvite[groupId]) {
+        groupsToInvite[groupId] = {
+          names: [],
+          emails: [],
+          rows: []
+        };
+      }
+      
+      // Add every guest's name to the list
+      groupsToInvite[groupId].names.push(fullName);
+      
+      // Add email to the list if it exists and isn't a duplicate
+      if (email && groupsToInvite[groupId].emails.indexOf(email) === -1) {
+        groupsToInvite[groupId].emails.push(email);
+      }
+      
+      // Store the actual spreadsheet row
+      groupsToInvite[groupId].rows.push(parseInt(guest.rowIndex) + 1);
+    }
+  });
+
+  var countSent = 0;
+  var countFailed = 0;
+  var errors = "";
+  for (var groupId in groupsToInvite) {
+    var groupInfo = groupsToInvite[groupId];
+
+    try {
+      // Only send if the group has at least one email address
+      if (groupInfo.emails.length > 0) {
+        var personalizedUrl = websiteUrl + (websiteUrl.indexOf('?') === -1 ? '?' : '&') + 'id=' + encodeURIComponent(groupId);
+        var subject = "You're Invited: " + eventTitle;
+        
+        // Join multiple emails with a comma
+        var toEmails = groupInfo.emails.join(",");
+        
+        // Format the names into a natural list (e.g. "A", "A and B", or "A, B, and C")
+        var formattedNames = "";
+        var namesList = groupInfo.names.slice(); // Copy the array so we can manipulate it
+        if (namesList.length === 1) {
+          formattedNames = namesList[0];
+        } else if (namesList.length === 2) {
+          formattedNames = namesList.join(" and ");
+        } else if (namesList.length > 2) {
+          var last = namesList.pop();
+          formattedNames = namesList.join(", ") + ", and " + last;
+        } else {
+          formattedNames = "Guest";
+        }
+        
+        var htmlBody = 
+            "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;'>" +
+            "<h2 style='color: #2c3e50;'>" + (globalConfig.email_salutation || "Hello") + " " + formattedNames + ",</h2>" +
+            "<p>You are warmly invited to <strong>" + eventTitle + "</strong>!</p>" +
+            "<p>We would love for you to join us. Please click the link below to view the event details and let us know if you can make it.</p>" +
+            "<p style='text-align: center; margin: 30px 0;'>" +
+              "<a href='" + personalizedUrl + "' style='background-color: #4a90e2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;'>View Invitation & RSVP</a>" +
+            "</p>" +
+            "<br>" +
+            "<p>" + emailSignature + "</p>" +
+          "</div>";
+
+        MailApp.sendEmail({
+          to: toEmails,
+          subject: subject,
+          htmlBody: htmlBody
+        });
+        
+        countSent++;
+        Logger.log("Sent invitation to " + toEmails + " for Group ID: " + groupId);
+        
+        // Update the "Invite_Sent" column to "Yes" for EVERY member in the group
+        if (inviteSentCol !== -1) {
+          groupInfo.rows.forEach(function(rowNum) {
+            guestsSheet.getRange(rowNum, inviteSentCol + 1).setValue("Yes");
+          });
+        }
+        
+        Utilities.sleep(500); 
+      }
+    } catch (e) {
+      countFailed++;
+      const errMsg = "Faild to send invitation to Group ID: " + groupId + ". Error: " + e.message;
+      Logger.log(errMsg);
+      errors += "\n" + errMsg;
+    }
+  }
+
+  SpreadsheetApp.flush();
+  var successMsg = "Successfully sent " + countSent + " invitation email(s).";
+  return errors == "" ? successMsg : successMsg + errors;
 }
 
 /**
