@@ -725,11 +725,17 @@
 
     function toggleEventGuests(evtId, isAttending) {
       const box = document.getElementById(`guests_box_${evtId}`);
+      if (box) {
+        if (isAttending) {
+          box.classList.remove("hidden");
+        } else {
+          box.classList.add("hidden");
+        }
+      }
+      
       if (isAttending) {
-        box.classList.remove("hidden");
         document.querySelectorAll(`.guest-chk-${evtId}`).forEach(chk => chk.checked = true);
       } else {
-        box.classList.add("hidden");
         document.querySelectorAll(`.guest-chk-${evtId}`).forEach(chk => chk.checked = false);
       }
 
@@ -739,7 +745,7 @@
         const guest = groupData.guests.find(g => g.guestId == chk.dataset.guestId);
         if (guest && guest.isPlusOne)
           handlePlusOneCheckbox(chk.checked, evtId, guest.guestId);
-      })
+      });
     }
 
     function copyFirstEventSelections(sourceEvtId) {
@@ -829,10 +835,10 @@
 
           // Identify if the primary guest's individual checkbox is checked
           const primaryGuestCheckbox = document.getElementById(`chk_${evtId}_${primaryGuest.guestId}`);
-          const isPrimaryGuestAttending = primaryGuestCheckbox ? primaryGuestCheckbox.checked : false;
+          // If the checkbox exists, read it. If it doesn't (single guest), fallback to the radio button status.
+          const isPrimaryGuestAttending = primaryGuestCheckbox ? primaryGuestCheckbox.checked : isEventAttending;
 
           const rsvpObject = {
-            // Only mark as attending if the event is accepted AND the individual guest is checked
             status: (isEventAttending && isPrimaryGuestAttending) ? "Attending" : "Decline",
             additionalGuests: []
           };
