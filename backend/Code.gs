@@ -289,7 +289,6 @@ function sendConfirmationEmail(email, name, payload) {
     var emailSignature = globalConfig.email_signature || "The Family";
     var subject = "RSVP Confirmation for " + eventTitle;
     
-    // Construct the personalized URL
     var websiteUrl = config.websiteUrl;
     var personalizedUrl = websiteUrl + (websiteUrl.indexOf('?') === -1 ? '?' : '&') + 'id=' + encodeURIComponent(payload.groupId);
 
@@ -309,19 +308,26 @@ function sendConfirmationEmail(email, name, payload) {
       }
     }
 
-    // 2. Fetch Guests data to map row indexes back to their names
+    // 2. Fetch Guests data to map IDs back to their names
     var guestsSheet = ss.getSheetByName("Guests");
     var guestsData = guestsSheet ? guestsSheet.getDataRange().getValues() : [];
     var fullNameCol = guestsData.length > 0 ? guestsData[0].indexOf("Full_Name") : -1;
+    var guestIdCol = guestsData.length > 0 ? guestsData[0].indexOf("Guest_ID") : -1;
 
-    // 3. Group attendance by event to avoid duplicate event headers for large families
+    // 3. Group attendance by event
     var eventBreakdown = {};
     
     payload.guestResponses.forEach(function(response) {
        var primaryName = "Guest";
-       // Retrieve the primary guest's real name using their sheet row index
-       if (fullNameCol !== -1 && response.row > 0 && response.row < guestsData.length) {
-         primaryName = guestsData[response.row][fullNameCol] || "Guest";
+       
+       // Lookup the guest's real name using their Guest_ID
+       if (guestIdCol !== -1 && fullNameCol !== -1) {
+         for (var i = 1; i < guestsData.length; i++) {
+           if (guestsData[i][guestIdCol] == response.guestId) {
+             primaryName = guestsData[i][fullNameCol] || "Guest";
+             break;
+           }
+         }
        }
 
        for (var eventId in response.rsvps) {
@@ -331,13 +337,11 @@ function sendConfirmationEmail(email, name, payload) {
          
          var rsvpData = response.rsvps[eventId];
          
-         // Add primary guest
          eventBreakdown[eventId].push({
            name: primaryName,
            status: rsvpData.status
          });
          
-         // Add plus ones
          if (rsvpData.additionalGuests && rsvpData.additionalGuests.length > 0) {
            rsvpData.additionalGuests.forEach(function(guest) {
              eventBreakdown[eventId].push({
@@ -400,8 +404,6 @@ function sendConfirmationEmail(email, name, payload) {
  */
 function sendAdminNotification(adminEmail, guestName, payload, ss, websiteUrl) {
   try {
-    var subject = "New RSVP Received: " + (guestName || "A Guest");
-    
     // 1. Get Event Titles from the spreadsheet for readable emails
     var eventsSheet = ss.getSheetByName("Events");
     var eventMap = {};
@@ -418,19 +420,32 @@ function sendAdminNotification(adminEmail, guestName, payload, ss, websiteUrl) {
       }
     }
 
-    // 2. Fetch Guests data to map row indexes back to their names
+    // 2. Fetch Guests data to map IDs back to their names
     var guestsSheet = ss.getSheetByName("Guests");
     var guestsData = guestsSheet ? guestsSheet.getDataRange().getValues() : [];
     var fullNameCol = guestsData.length > 0 ? guestsData[0].indexOf("Full_Name") : -1;
+    var guestIdCol = guestsData.length > 0 ? guestsData[0].indexOf("Guest_ID") : -1;
 
-    // 3. Group attendance by event
+    // 3. Group attendance by event and extract real names
     var eventBreakdown = {};
+    var resolvedPrimaryName = "";
     
     payload.guestResponses.forEach(function(response) {
        var primaryName = "Guest";
-       // Retrieve the primary guest's real name using their sheet row index
-       if (fullNameCol !== -1 && response.row > 0 && response.row < guestsData.length) {
-         primaryName = guestsData[response.row][fullNameCol] || "Guest";
+       
+       // Lookup the guest's real name using their Guest_ID
+       if (guestIdCol !== -1 && fullNameCol !== -1) {
+         for (var i = 1; i < guestsData.length; i++) {
+           if (guestsData[i][guestIdCol] == response.guestId) {
+             primaryName = guestsData[i][fullNameCol] || "Guest";
+             break;
+           }
+         }
+       }
+       
+       // Save the very first name we find to use in the email subject
+       if (!resolvedPrimaryName && primaryName !== "Guest") {
+           resolvedPrimaryName = primaryName;
        }
 
        for (var eventId in response.rsvps) {
@@ -458,10 +473,14 @@ function sendAdminNotification(adminEmail, guestName, payload, ss, websiteUrl) {
        }
     });
 
+    // Use the fetched name if the one passed from the frontend is missing or generic
+    var finalSubjectName = guestName && guestName !== "A guest" && guestName !== "Guest" ? guestName : resolvedPrimaryName;
+    var subject = "New RSVP Received: " + (finalSubjectName || "A Guest");
+
     // 4. Build the Email HTML Body
     var htmlBody = "<div style='font-family: Arial, sans-serif; max-width: 600px; color: #333;'>";
     htmlBody += "<h2 style='color: #2c3e50;'>New RSVP Submission</h2>";
-    htmlBody += "<p><strong>" + (guestName || "A guest") + "</strong> has just submitted an RSVP.</p>";
+    htmlBody += "<p><strong>" + (finalSubjectName || "A guest") + "</strong> has just submitted an RSVP.</p>";
     htmlBody += "<hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;'>";
     htmlBody += "<h3 style='color: #4a90e2;'>Attendance Details:</h3>";
     
@@ -480,13 +499,11 @@ function sendAdminNotification(adminEmail, guestName, payload, ss, websiteUrl) {
        htmlBody += "</ul></div>";
     }
 
-    // Append notes if they exist
     if (payload.notes) {
       htmlBody += "<h3 style='color: #4a90e2; margin-top: 20px;'>Guest Notes/Dietary Restrictions:</h3>";
       htmlBody += "<p style='background-color: #f8f9fa; padding: 12px; border-left: 4px solid #f39c12; border-radius: 4px;'>" + payload.notes + "</p>";
     }
     
-    // 5. Admin Portal Link
     var adminUrl = websiteUrl ? websiteUrl.replace("index.html", "admin.html") : "YOUR_ADMIN_URL_HERE";
     if (adminUrl.indexOf("admin.html") === -1 && adminUrl !== "YOUR_ADMIN_URL_HERE") {
        adminUrl = adminUrl.substring(0, adminUrl.lastIndexOf('/')) + "/admin.html";
