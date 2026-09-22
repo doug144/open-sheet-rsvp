@@ -32,7 +32,7 @@ function doGet(e) {
   try {
     var searchGroupId = e.parameter.id || e.parameter.groupId || "";
     searchGroupId = searchGroupId.toString().toLowerCase().trim();
-
+    
     if (!searchGroupId) {
       return createJsonResponse({ found: false, error: "No Group ID provided." });
     }
@@ -116,6 +116,9 @@ function doGet(e) {
       groupNotes: groupNotes,
       config: globalConfig
     };
+
+    var isPreview = e?.parameter?.preview?.toLowerCase() === "true";
+    if (!isPreview) recordInvitationOpen(searchGroupId, ss);
 
     return createJsonResponse(responsePayload);
 
@@ -775,4 +778,46 @@ function sendReminderEmails(groupIdsToSend) {
   }
 
   return "Successfully sent " + countSent + " reminder email(s).";
+}
+
+/**
+ * Records the first and last time an invitation link was opened for a group.
+ */
+function recordInvitationOpen(groupId, ss) {
+  if (!groupId) return;
+  
+  var guestsSheet = ss.getSheetByName("Guests");
+  if (!guestsSheet) return;
+  
+  var data = guestsSheet.getDataRange().getValues();
+  var headers = data[0];
+  var groupIdCol = headers.indexOf("Group_ID");
+  var firstOpenedCol = headers.indexOf("First_Opened");
+  var lastOpenedCol = headers.indexOf("Last_Opened");
+  
+  if (groupIdCol === -1) return;
+  
+  var now = new Date(); // Current timestamp
+  
+  // Iterate through all rows and update every member of this group
+  for (var i = 1; i < data.length; i++) {
+    var rowGroupId = data[i][groupIdCol] ? data[i][groupIdCol].toString().trim() : "";
+    
+    if (rowGroupId === groupId.toString().trim()) {
+      var rowNum = i + 1;
+      
+      // Check existing First_Opened value
+      var currentFirst = firstOpenedCol !== -1 ? data[i][firstOpenedCol] : "";
+      
+      // Set First_Opened only if it's currently blank
+      if (firstOpenedCol !== -1 && (!currentFirst || currentFirst === "")) {
+        guestsSheet.getRange(rowNum, firstOpenedCol + 1).setValue(now);
+      }
+      
+      // Always update Last_Opened with the current timestamp
+      if (lastOpenedCol !== -1) {
+        guestsSheet.getRange(rowNum, lastOpenedCol + 1).setValue(now);
+      }
+    }
+  }
 }

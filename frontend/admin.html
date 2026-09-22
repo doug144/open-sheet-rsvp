@@ -21,20 +21,18 @@
             --highlight-header: #f2f2f2;
             --status-success-bg: #e8f5e9;
             --status-success-text: #2e7d32;
-            --status-success-border: #a5d6a7;
             --status-error-bg: #ffebee;
             --status-error-text: #c62828;
-            --status-error-border: #ef9a9a;
             --status-info-bg: #e3f2fd;
             --status-info-text: #1565c0;
-            --status-info-border: #90caf9;
+            --status-warning-bg: #fff3cd;
+            --status-warning-text: #856404;
             --chart-bg: #e9ecef;
             --chart-responded: #28a745;
             --chart-no-response: #ffc107;
             --chart-declined: #dc3545;
             --shadow-color: rgba(0,0,0,0.08);
             --modal-bg: rgba(0,0,0,0.5);
-            --logout-text: #6c757d;
         }
         @media (prefers-color-scheme: dark) {
             :root {
@@ -47,48 +45,65 @@
                 --border-secondary: #555;
                 --accent-primary: #5e9eff;
                 --accent-danger: #ff5c5c;
-                --accent-disabled: #4a4a4a;
                 --highlight-row: #333;
                 --highlight-header: #2a2a2a;
                 --status-success-bg: #1c3b23;
                 --status-success-text: #a5d6a7;
-                --status-success-border: #2e7d32;
                 --status-error-bg: #422022;
                 --status-error-text: #ef9a9a;
-                --status-error-border: #c62828;
                 --status-info-bg: #1a3a5b;
                 --status-info-text: #90caf9;
-                --status-info-border: #1565c0;
+                --status-warning-bg: #4d3800;
+                --status-warning-text: #ffca28;
                 --chart-bg: #3a3a3a;
                 --shadow-color: rgba(0,0,0,0.4);
-                --modal-bg: rgba(0,0,0,0.7);
-                --logout-text: #a0a0a0;
             }
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; background-color: var(--bg-primary); color: var(--text-primary); }
-        .container { max-width: 800px; margin: 2rem auto; padding: 2rem; background-color: var(--bg-secondary); border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color); position: relative; }
+        .container { max-width: 900px; margin: 2rem auto; padding: 2rem; background-color: var(--bg-secondary); border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color); position: relative; }
         h1, h2, h3 { color: var(--text-header); }
-        #login-view { text-align: center; }
-        #admin-view { display: none; }
-        input[type="password"], input[type="text"] { width: 100%; padding: 10px; margin-bottom: 1rem; border: 1px solid var(--border-secondary); border-radius: 4px; box-sizing: border-box; background-color: var(--bg-primary); color: var(--text-primary); }
-        #search-input { padding: 12px; margin-bottom: 1.5rem; font-size: 1rem; }
-        .btn { display: inline-block; background-color: var(--accent-primary); color: white; padding: 10px 18px; text-decoration: none; border-radius: 5px; font-weight: bold; cursor: pointer; border: none; }
-        .btn-danger { background-color: var(--accent-danger); }
-        .btn:disabled { background-color: var(--accent-disabled); cursor: not-allowed; }
-        .btn-secondary { background-color: var(--border-secondary); color: var(--text-primary); }
-        #status { margin-top: 1rem; padding: 10px; border-radius: 4px; display: none; }
-        .status-success { background-color: var(--status-success-bg); color: var(--status-success-text); border: 1px solid var(--status-success-border); }
-        .status-error { background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border); }
-        .status-info { background-color: var(--status-info-bg); color: var(--status-info-text); border: 1px solid var(--status-info-border); }
-        table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border-primary); }
-        th { background-color: var(--highlight-header); }
-        tr:hover { background-color: var(--highlight-row); }
         
-        /* Collapsible Section Styles */
-        .section-toggle { cursor: pointer; user-select: none; display: flex; align-items: center; }
-        .section-toggle:hover { color: var(--accent-primary); }
-        .section-icon { display: inline-block; width: 25px; font-size: 0.75em; }
+        /* Tabs */
+        .tab-bar { display: flex; border-bottom: 2px solid var(--border-primary); margin-bottom: 2rem; }
+        .tab-btn { background: none; border: none; padding: 12px 24px; font-size: 1.1em; font-weight: bold; color: var(--text-secondary); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+        .tab-btn:hover { color: var(--accent-primary); }
+        .tab-btn.active { color: var(--accent-primary); border-bottom: 3px solid var(--accent-primary); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        input[type="text"], input[type="password"], select { width: 100%; padding: 10px; border: 1px solid var(--border-secondary); border-radius: 4px; box-sizing: border-box; background-color: var(--bg-primary); color: var(--text-primary); }
+        .btn { display: inline-block; background-color: var(--accent-primary); color: white; padding: 10px 18px; text-decoration: none; border-radius: 5px; font-weight: bold; cursor: pointer; border: none; }
+        .btn-small { padding: 6px 10px; font-size: 0.85em; }
+        .btn-outline { background: transparent; border: 1px solid var(--accent-primary); color: var(--accent-primary); }
+        
+        /* Directory Styles */
+        .chip { display: inline-block; padding: 4px 12px; border-radius: 16px; font-size: 0.85em; cursor: pointer; background: var(--bg-primary); border: 1px solid var(--border-secondary); margin-right: 5px; margin-bottom: 5px; }
+        .chip.active { background: var(--accent-primary); color: white; border-color: var(--accent-primary); }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; margin-left: 8px; }
+        .badge-success { background: var(--status-success-bg); color: var(--status-success-text); }
+        .badge-warning { background: var(--status-warning-bg); color: var(--status-warning-text); }
+        
+        .dir-group { border: 1px solid var(--border-primary); border-radius: 6px; margin-bottom: 1rem; padding: 1rem; background: var(--bg-secondary); }
+        .dir-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-primary); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        .dir-guest { display: flex; justify-content: space-between; align-items: flex-start; padding: 0.5rem 0; border-bottom: 1px dashed var(--border-primary); flex-wrap: wrap; gap: 10px; }
+        .dir-guest:last-child { border-bottom: none; }
+        .dir-guest-info { flex-grow: 1; }
+        .dir-guest-actions { display: flex; gap: 10px; align-items: center; }
+        .inline-edit-input { padding: 4px; font-size: 0.9em; margin-bottom: 4px; width: 100%; max-width: 200px; display: block; }
+        
+        /* Chart Styles */
+        .chart-container { margin-bottom: 2rem; }
+        .chart-title { font-weight: bold; margin-bottom: 0.5rem; display: block; }
+        .chart-bar { display: flex; height: 25px; border-radius: 4px; overflow: hidden; background-color: var(--chart-bg); }
+        .chart-segment { display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8em; font-weight: bold; }
+        .chart-segment[data-tooltip]:before { content: attr(data-tooltip); position: absolute; background: var(--text-primary); color: var(--bg-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.9em; transform: translateY(30px); white-space: nowrap; z-index: 10; opacity: 0; pointer-events: none; transition: 0.2s; }
+        .chart-segment:hover:before { opacity: 1; }
+        .segment-responded, .segment-attending { background-color: var(--chart-responded); } 
+        .segment-no-response { background-color: var(--chart-no-response); } 
+        .segment-declined { background-color: var(--chart-declined); } 
+        .chart-legend { display: flex; gap: 15px; margin-top: 0.75rem; font-size: 0.85em; justify-content: center; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
 
         /* Accordion Styles */
         .accordion-item { border: 1px solid var(--border-primary); border-radius: 4px; margin-bottom: 1rem; overflow: hidden; }
@@ -97,93 +112,65 @@
         .accordion-content { display: none; padding: 1rem; border-top: 1px solid var(--border-primary); }
         .accordion-content h3 { margin-top: 0; color: var(--accent-primary); }
         .accordion-content ul { padding-left: 20px; margin: 0; }
-        .accordion-content li { margin-bottom: 0.5rem; }
         .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; }
         .stat-box { text-align: center; }
         .stat-box .number { font-size: 1.5em; font-weight: bold; }
         .stat-box .label { font-size: 0.9em; color: var(--text-secondary); }
-        .attendee-list { font-size: 0.9em; color: var(--text-secondary); margin-left: 8px; }
-        .attendee-list:before { content: '('; }
-        .attendee-list:after { content: ')'; }
         .no-attendees { color: var(--text-secondary); font-style: italic; }
+
+        #status { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 4px; display: none; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .status-success { background: var(--status-success-bg); color: var(--status-success-text); border: 1px solid var(--status-success-text); }
+        .status-error { background: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-text); }
+        .status-info { background: var(--status-info-bg); color: var(--status-info-text); border: 1px solid var(--status-info-text); }
         
-        /* Chart Styles */
-        .charts-area { margin-bottom: 2.5rem; }
-        .chart-container { margin-bottom: 2rem; }
-        .chart-title { font-weight: bold; margin-bottom: 0.5rem; display: block; }
-        .chart-bar { display: flex; height: 25px; border-radius: 4px; overflow: hidden; background-color: var(--chart-bg); }
-        .chart-segment { display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8em; font-weight: bold; transition: opacity 0.2s; }
-        .chart-segment:hover { opacity: 0.85; }
-        .chart-segment[data-tooltip]:before { content: attr(data-tooltip); position: absolute; background: var(--text-primary); color: var(--bg-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.9em; transform: translateY(30px); white-space: nowrap; z-index: 10; }
-        .segment-responded, .segment-attending { background-color: var(--chart-responded); } 
-        .segment-no-response { background-color: var(--chart-no-response); } 
-        .segment-declined { background-color: var(--chart-declined); } 
-        .chart-legend { display: flex; gap: 15px; margin-top: 0.75rem; font-size: 0.85em; justify-content: center; }
-        .legend-item { display: flex; align-items: center; gap: 5px; }
-        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+        .section-toggle { cursor: pointer; user-select: none; display: flex; align-items: center; }
+        .section-icon { display: inline-block; width: 25px; font-size: 0.75em; }
         
-        /* Logout Button */
-        .logout-btn { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--logout-text); cursor: pointer; font-size: 0.9em; }
-        .logout-btn:hover { color: var(--accent-primary); text-decoration: underline; }
-        
-        /* Modal Styles */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); display: none; align-items: center; justify-content: center; z-index: 1000; }
         .modal-content { background: var(--bg-secondary); padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        .modal-header h3 { margin: 0; }
-        .modal-close { font-size: 1.5rem; font-weight: bold; cursor: pointer; background: none; border: none; color: var(--text-primary); }
-        .modal-body ul { list-style: none; padding: 0; margin: 0; }
-        .modal-body li { padding: 0.5rem 0; border-bottom: 1px solid var(--border-primary); }
-        .modal-body li:last-child { border-bottom: none; }
-        .modal-body label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
-        .modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; }
-        .modal-select-all { margin-bottom: 1rem; }
-        .modal-select-all label { font-size: 0.9em; }
-        .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Admin Panel</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="margin: 0;">Admin Panel</h1>
+            <button class="btn btn-small btn-outline" onclick="logout()" id="logout-btn" style="display: none;">Logout</button>
+        </div>
         
         <!-- Login View -->
-        <div id="login-view">
+        <div id="login-view" style="margin-top: 2rem; text-align: center;">
             <h2>Please Enter Password</h2>
             <input type="password" id="password" placeholder="Password">
-            <button class="btn" onclick="login()">Login</button>
+            <button class="btn" onclick="login()" style="margin-top: 10px;">Login</button>
             <div id="login-error" style="color: #c62828; margin-top: 1rem; display: none;">Incorrect password.</div>
         </div>
         
         <!-- Main Admin View -->
-        <div id="admin-view">
-            <button class="logout-btn" style="right: 5rem;" onclick="loadDashboard()">Refresh Data</button>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+        <div id="admin-view" style="display: none; margin-top: 2rem;">
             
-            <!-- Loader -->
-            <div id="dashboard-loader" style="display: none; text-align: center; padding: 4rem 2rem; flex-direction: column; align-items: center; justify-content: center;">
-                <div style="font-size: 1.5rem; color: var(--accent-primary); margin-bottom: 1rem;">⏳ Loading Dashboard...</div>
-                <div style="color: var(--text-secondary); font-size: 0.9rem;">Fetching the latest RSVPs and event details.</div>
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('tab-overview')">Overview</button>
+                <button class="tab-btn" onclick="switchTab('tab-directory')">Guest Directory</button>
             </div>
 
-            <!-- Content Container (Hidden while loading) -->
-            <div id="dashboard-content" style="display: none;">
+            <!-- Loader -->
+            <div id="dashboard-loader" style="display: flex; text-align: center; padding: 4rem 2rem; flex-direction: column; align-items: center; justify-content: center;">
+                <div style="font-size: 1.5rem; color: var(--accent-primary); margin-bottom: 1rem;">⏳ Loading Data...</div>
+            </div>
+
+            <!-- TAB 1: OVERVIEW -->
+            <div id="tab-overview" class="tab-content active">
                 <div id="countdown-container"></div>
                 
-                <!-- SECTION: RSVP Summary (Expanded by default) -->
-                <h2 class="section-toggle" onclick="toggleSection('section-summary', this)">
-                    <span class="section-icon">▼</span> RSVP Summary
-                </h2>
+                <h2 class="section-toggle" onclick="toggleSection('section-summary', this)"><span class="section-icon">▼</span> RSVP Summary</h2>
                 <div id="section-summary" style="display: block;">
                     <div id="charts-container" class="charts-area"></div>
                 </div>
                 
-                <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+                <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-primary);">
                 
-                <!-- SECTION: Event Details -->
                 <h2 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                    <span class="section-toggle" onclick="toggleSection('section-details', this)">
-                        <span class="section-icon">▶</span> Event Details
-                    </span>
+                    <span class="section-toggle" onclick="toggleSection('section-details', this)"><span class="section-icon">▶</span> Event Details</span>
                     <div style="font-size: 0.75em; display: flex; gap: 5px; font-weight: normal; align-items: center;">
                         <select id="copy-email-filter" style="padding: 6px; border-radius: 4px; border: 1px solid var(--border-secondary); background-color: var(--bg-primary); color: var(--text-primary);">
                             <option value="ALL">All Events</option>
@@ -192,120 +179,130 @@
                     </div>
                 </h2>
                 <div id="section-details" style="display: none;">
-                    <input type="text" id="search-input" placeholder="Search guests by name..." onkeyup="filterSearch()">
-                    <div id="dashboard-container"></div>
+                    <div id="accordions-container"></div>
                 </div>
                 
-                <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+                <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-primary);">
                 
-                <!-- SECTION: Dietary Restrictions & Notes -->
-                <h2 class="section-toggle" onclick="toggleSection('section-notes', this)">
-                    <span class="section-icon">▶</span> Dietary Restrictions & Notes
+                <h2 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <span class="section-toggle" onclick="toggleSection('section-notes', this)">
+                        <span class="section-icon">▶</span> Dietary Restrictions & Notes
+                    </span>
+                    <div style="font-size: 0.75em; display: flex; gap: 12px; font-weight: normal; align-items: center;">
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" id="notes-attending-filter" checked onchange="filterNotes()">
+                            Attending Only
+                        </label>
+                        <select id="notes-filter" onchange="filterNotes()" style="padding: 6px; border-radius: 4px; border: 1px solid var(--border-secondary); background-color: var(--bg-primary); color: var(--text-primary);">
+                            <option value="ALL">All Events</option>
+                        </select>
+                    </div>
                 </h2>
                 <div id="section-notes" style="display: none;">
                     <div id="notes-container"></div>
                 </div>
 
-                <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+                <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-primary);">
                 
-                <!-- SECTION: Send Initial Invitations -->
-                <h2 class="section-toggle" onclick="toggleSection('section-invites', this)">
-                    <span class="section-icon">▶</span> Send Initial Invitations
-                </h2>
+                <h2 class="section-toggle" onclick="toggleSection('section-invites', this)"><span class="section-icon">▶</span> Send Initial Invitations</h2>
                 <div id="section-invites" style="display: none;">
-                    <p>This will send an invitation email with a personalized link to the selected groups.</p>
-                    <button id="invite-btn" class="btn" onclick="openInviteModal()">Select Recipients for Invitation</button>
+                    <p>Send an invitation email with a personalized link to groups who haven't received one yet.</p>
+                    <button class="btn" onclick="document.getElementById('invite-modal').style.display='flex'">Select Recipients for Invitation</button>
                 </div>
                 
-                <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
+                <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-primary);">
                 
-                <!-- SECTION: Send Reminders -->
-                <h2 class="section-toggle" onclick="toggleSection('section-reminders', this)">
-                    <span class="section-icon">▶</span> Send Reminder Emails
-                </h2>
+                <h2 class="section-toggle" onclick="toggleSection('section-reminders', this)"><span class="section-icon">▶</span> Send Reminder Emails</h2>
                 <div id="section-reminders" style="display: none;">
-                    <p>This will send an email to the primary guest of each group that has not yet submitted an RSVP.</p>
-                    <button id="remind-btn" class="btn btn-danger" onclick="openReminderModal()">Select Recipients for Reminder</button>
+                    <p>Send a reminder email to groups that have not yet submitted an RSVP.</p>
+                    <button class="btn btn-danger" onclick="document.getElementById('reminder-modal').style.display='flex'">Select Recipients for Reminder</button>
                 </div>
+
+                <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-primary);">
                 
-                <hr style="margin: 2rem 0; border: none; border-top: 1px solid #eee;">
-                
-                <!-- SECTION: Not Responded -->
-                <h2 class="section-toggle" onclick="toggleSection('section-not-responded', this)">
-                    <span class="section-icon">▶</span> Not Responded
-                </h2>
+                <h2 class="section-toggle" onclick="toggleSection('section-not-responded', this)"><span class="section-icon">▶</span> Not Responded</h2>
                 <div id="section-not-responded" style="display: none;">
                     <div id="not-responded-container" style="margin-top: 1.5rem;"></div>
                 </div>
-                
-                <!-- Status Message Toast -->
-                <div id="status"></div>
             </div>
+
+            <!-- TAB 2: GUEST DIRECTORY -->
+            <div id="tab-directory" class="tab-content">
+                <div style="display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <input type="text" id="dir-search" placeholder="Search by name, email, or group..." style="flex-grow: 1; max-width: 400px;" onkeyup="renderDirectory()">
+                    <button class="btn" onclick="document.getElementById('add-group-modal').style.display='flex'">+ New Group</button>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;" id="dir-filters">
+                    <span class="chip active" data-filter="all" onclick="setDirFilter('all', this)">All Guests</span>
+                    <span class="chip" data-filter="unsent" onclick="setDirFilter('unsent', this)">Invite Unsent</span>
+                    <span class="chip" data-filter="no_response" onclick="setDirFilter('no_response', this)">No Response</span>
+                    <span class="chip" data-filter="notes" onclick="setDirFilter('notes', this)">Has Notes</span>
+                </div>
+
+                <div id="directory-container"></div>
+            </div>
+            
+            <div id="status"></div>
         </div>
     </div>
 
-    <!-- Invitation Modal -->
+    <!-- Modals (Invite, Reminder, Add Group) -->
     <div id="invite-modal" class="modal-overlay">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>Select Invitation Recipients</h3>
-                <button class="modal-close" onclick="closeInviteModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="modal-filter" style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-primary);">
-                    <label style="display: flex; align-items: center; gap: 8px; font-weight: bold; color: var(--accent-primary);">
-                        <input type="checkbox" id="filter-unsent-invites" checked onchange="renderInviteList()">
-                        Show only unsent invitations
-                    </label>
-                </div>
-                <div class="modal-select-all">
-                    <label>
-                        <input type="checkbox" id="select-all-invites" onchange="toggleAllInviteCheckboxes(this.checked)">
-                        Select All
-                    </label>
-                </div>
-                <ul id="invite-recipient-list"></ul>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeInviteModal()">Cancel</button>
-                <button id="send-invites-confirm" class="btn" onclick="sendInvites()">Send Invitations</button>
-            </div>
+            <h3>Send Invitations</h3>
+            <p>Will send to groups marked "Invite_Sent: No".</p>
+            <button class="btn btn-outline" onclick="this.closest('.modal-overlay').style.display='none'">Cancel</button>
+            <button class="btn" onclick="sendBatchAction('sendInvitations')">Send Now</button>
         </div>
     </div>
-
-    <!-- Reminder Modal -->
     <div id="reminder-modal" class="modal-overlay">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>Select Reminder Recipients</h3>
-                <button class="modal-close" onclick="closeReminderModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="modal-select-all">
-                    <label>
-                        <input type="checkbox" id="select-all-reminders" onchange="toggleAllReminderCheckboxes(this.checked)">
-                        Select All
-                    </label>
-                </div>
-                <ul id="reminder-recipient-list"></ul>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeReminderModal()">Cancel</button>
-                <button id="send-reminders-confirm" class="btn btn-danger" onclick="sendReminders()">Send Reminders</button>
-            </div>
+            <h3>Send Reminders</h3>
+            <p>Will send to groups who have not RSVP'd.</p>
+            <button class="btn btn-outline" onclick="this.closest('.modal-overlay').style.display='none'">Cancel</button>
+            <button class="btn btn-danger" onclick="sendBatchAction('sendReminders')">Send Now</button>
+        </div>
+    </div>
+    <div id="add-group-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Add New Group</h3>
+            <input type="text" id="new-group-name" placeholder="Primary Guest Full Name" style="margin-bottom: 10px;">
+            <input type="text" id="new-group-email" placeholder="Email Address" style="margin-bottom: 10px;">
+            <input type="text" id="new-group-events" placeholder="Allowed Events (e.g. EVT-1, EVT-2)" style="margin-bottom: 20px;">
+            <button class="btn btn-outline" onclick="this.closest('.modal-overlay').style.display='none'">Cancel</button>
+            <button class="btn" onclick="createNewGroup()">Create Group</button>
         </div>
     </div>
 
     <script src="config.js"></script>
     <script>
-        let globalNotRespondedCache = []; 
-        let globalAllGroupsCache = []; 
-        let globalEventsSummaryCache = {}; 
-        let globalNotRespondedList = []; 
+        let globalData = { groups: [], events: {} };
+        let currentFilter = 'all';
+        let globalEventsSummaryCache = {};
+        let globalNotRespondedList = [];
 
         const getAuth = () => ({ password: localStorage.getItem('adminPass') });
+        const showStatus = (msg, type = 'info') => {
+            const el = document.getElementById('status');
+            el.textContent = msg; el.className = 'status-' + type; el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 4000);
+        };
 
-        // Collapse/Expand Section Logic
+        function formatDateTime(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelector(`button[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
         function toggleSection(contentId, headerEl) {
             const content = document.getElementById(contentId);
             const icon = headerEl.querySelector('.section-icon');
@@ -318,393 +315,366 @@
             }
         }
 
-        function showStatus(message, type = 'info') {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = message;
-            statusEl.className = 'status-' + type;
-            statusEl.style.display = 'block';
-            setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
-        }
-
         async function apiCall(payload) {
-            const response = await fetch(CONFIG.scriptUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify(payload)
-            });
-            
+            const response = await fetch(CONFIG.scriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
             if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
-            
-            const rawText = await response.text();
-            const result = JSON.parse(rawText); 
-            
-            if (result.error) throw new Error(result.error);
-            if (result.result === 'error') throw new Error(result.message || 'Server error occurred.');
-            
-            if (result.status === 'unauthorized') {
-                localStorage.removeItem('adminPass');
-                document.getElementById('login-view').style.display = 'block';
-                document.getElementById('admin-view').style.display = 'none';
-                document.getElementById('login-error').style.display = 'block';
-                throw new Error('Authorization failed. Please log in again.');
-            }
+            const result = JSON.parse(await response.text()); 
+            if (result.error || result.result === 'error') throw new Error(result.error || result.message);
+            if (result.status === 'unauthorized') { logout(); throw new Error('Authorization failed.'); }
             return result.data;
         }
 
         async function login() {
-            const password = document.getElementById('password').value;
-            const loginError = document.getElementById('login-error');
-            loginError.style.display = 'none';
-            if (!password) return;
-            
+            const pass = document.getElementById('password').value;
+            if (!pass) return;
             try {
-                await apiCall({ action: 'adminLogin', password: password });
-                localStorage.setItem('adminPass', password);
+                await apiCall({ action: 'adminLogin', password: pass });
+                localStorage.setItem('adminPass', pass);
                 document.getElementById('login-view').style.display = 'none';
                 document.getElementById('admin-view').style.display = 'block';
-                loadDashboard();
+                document.getElementById('logout-btn').style.display = 'block';
+                loadData();
             } catch (err) {
-                loginError.style.display = 'block';
-                console.error(err);
+                document.getElementById('login-error').style.display = 'block';
             }
         }
 
         function logout() {
             localStorage.removeItem('adminPass');
-            document.getElementById('login-view').style.display = 'block';
-            document.getElementById('admin-view').style.display = 'none';
-            document.getElementById('password').value = '';
+            location.reload();
         }
 
-        async function checkCachedLogin() {
-            const cachedPassword = localStorage.getItem('adminPass');
-            const loginButton = document.querySelector('#login-view .btn');
-            const passwordInput = document.getElementById('password');
-            
-            if (cachedPassword) {
-                loginButton.disabled = true;
-                loginButton.textContent = 'Logging in...';
-                passwordInput.disabled = true;
-                try {
-                    await apiCall({ action: 'adminLogin', password: cachedPassword });
-                    document.getElementById('login-view').style.display = 'none';
-                    document.getElementById('admin-view').style.display = 'block';
-                    loginButton.disabled = false;
-                    loginButton.textContent = 'Login';
-                    passwordInput.disabled = false;
-                    loadDashboard();
-                } catch (err) {
-                    logout();
-                }
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (localStorage.getItem('adminPass')) {
+                document.getElementById('login-view').style.display = 'none';
+                document.getElementById('admin-view').style.display = 'block';
+                document.getElementById('logout-btn').style.display = 'block';
+                loadData();
             }
-        }
+        });
 
-        document.addEventListener('DOMContentLoaded', checkCachedLogin);
-
-        async function loadDashboard() {
-            // Show loader, hide dashboard content
+        async function loadData() {
             document.getElementById('dashboard-loader').style.display = 'flex';
-            document.getElementById('dashboard-content').style.display = 'none';
-            
-            const container = document.getElementById('dashboard-container');
-            document.getElementById('charts-container').innerHTML = '';
-            document.getElementById('search-input').value = '';
+            document.getElementById('tab-overview').style.display = 'none';
+            document.getElementById('tab-directory').style.display = 'none';
             
             try {
                 const data = await apiCall({ action: 'getDashboard', auth: getAuth() });
-                const { guests: rawGuests, events: rawEvents } = data;
-                container.innerHTML = ''; 
                 
-                renderCountdown(rawEvents);
-
-                // Process Raw Data
-                const groups = {};
-                rawGuests.forEach(guest => {
-                    const groupId = guest.Group_ID;
-                    if (!groupId) return;
-                    if (!groups[groupId]) {
-                        groups[groupId] = {
-                            id: groupId,
-                            primaryGuest: '',
-                            guests: [],
-                            hasResponded: false
+                // Process into manageable structure
+                const groupsMap = {};
+                data.guests.forEach(g => {
+                    if (!groupsMap[g.Group_ID]) {
+                        groupsMap[g.Group_ID] = { 
+                            id: g.Group_ID, 
+                            primaryGuest: '', 
+                            guests: [], 
+                            hasResponded: false, 
+                            inviteSent: false, 
+                            notes: '',
+                            firstOpened: null,
+                            lastOpened: null
                         };
                     }
-                    groups[groupId].guests.push(guest);
-                    if (guest.RSVPs && guest.RSVPs !== '{}') {
-                        groups[groupId].hasResponded = true;
-                    }
-                });
-
-                Object.values(groups).forEach(group => {
-                    if (!group.guests || group.guests.length === 0) {
-                        group.primaryGuest = 'Unnamed Group';
-                        return;
-                    }
-                    group.guests.sort((a, b) => {
-                        const numA = parseInt(String(a.Guest_ID || '0').split('-').pop(), 10);
-                        const numB = parseInt(String(b.Guest_ID || '0').split('-').pop(), 10);
-                        return numA - numB;
-                    });
-                    group.primaryGuest = group.guests[0].Full_Name;
-                });
-                
-                renderNotes(groups);
-
-                const eventsSummary = {};
-                rawEvents.forEach(event => {
-                    if (!event.Event_ID) return;
-                    eventsSummary[event.Event_ID] = {
-                        id: event.Event_ID,
-                        name: event.Title || event.Event_ID,
-                        respondedGroups: [],
-                        notRespondedGroups: []
-                    };
-                });
-
-                const globalNotResponded = [];
-                globalNotRespondedCache = []; 
-                globalAllGroupsCache = Object.values(groups); 
-
-                Object.values(groups).forEach(group => {
-                    const primaryGuest = group.guests[0];
-                    const allowedEventsStr = primaryGuest.Allowed_Events || "";
+                    groupsMap[g.Group_ID].guests.push(g);
+                    if (g.RSVPs && g.RSVPs !== '{}') groupsMap[g.Group_ID].hasResponded = true;
+                    if (g.Invite_Sent && String(g.Invite_Sent).toLowerCase() === 'yes') groupsMap[g.Group_ID].inviteSent = true;
+                    if (g.Notes && String(g.Notes).trim() !== '') groupsMap[g.Group_ID].notes = String(g.Notes).trim();
                     
-                    if (!group.hasResponded) {
-                        globalNotResponded.push(group);
+                    // Track open dates
+                    if (g.First_Opened) {
+                        const d = new Date(g.First_Opened);
+                        if (!isNaN(d.getTime()) && (!groupsMap[g.Group_ID].firstOpened || d < new Date(groupsMap[g.Group_ID].firstOpened))) {
+                            groupsMap[g.Group_ID].firstOpened = g.First_Opened;
+                        }
                     }
-                    globalNotRespondedCache = globalNotResponded;
-                    
-                    for (const eventId in eventsSummary) {
-                        if (allowedEventsStr.includes(eventId)) {
-                            if (group.hasResponded) {
-                                const attendeeNames = new Set();
-                                let peopleInRsvp = 0;
-                                group.guests.forEach(guest => {
-                                    try {
-                                        const rsvps = JSON.parse(guest.RSVPs);
-                                        const eventRsvp = rsvps[eventId];
-                                        if (eventRsvp) {
-                                            peopleInRsvp++; 
-                                            if (eventRsvp.status === 'Attending') {
-                                                attendeeNames.add(guest.Full_Name);
-                                            }
-                                            if (eventRsvp.additionalGuests && Array.isArray(eventRsvp.additionalGuests)) {
-                                                peopleInRsvp += eventRsvp.additionalGuests.length;
-                                                eventRsvp.additionalGuests.forEach(ag => {
-                                                    if (ag.status === 'Attending' && ag.name && ag.name.trim()) {
-                                                        attendeeNames.add(ag.name.trim());
-                                                    }
-                                                });
-                                            }
-                                        }
-                                    } catch (e) {
-                                        console.error(`Could not parse RSVPs for guest ${guest.Full_Name}:`, guest.RSVPs, e);
-                                    }
-                                });
-                                const attendeesArray = Array.from(attendeeNames);
-                                const attendingCount = attendeesArray.length;
-                                const decliningCount = peopleInRsvp - attendingCount;
-                                
-                                eventsSummary[eventId].respondedGroups.push({
-                                     ...group,
-                                     attendees: attendeesArray,
-                                     attendingCount: attendingCount,
-                                     decliningCount: decliningCount
-                                });
-                            } else {
-                                let potentialInvitees = 0;
-                                group.guests.forEach(guest => {
-                                    potentialInvitees += 1 + (parseInt(guest.Additional_Guests, 10) || 0);
-                                });
-                                eventsSummary[eventId].notRespondedGroups.push({
-                                    ...group,
-                                    noResponseCount: potentialInvitees
-                                });
-                            }
+                    if (g.Last_Opened) {
+                        const d = new Date(g.Last_Opened);
+                        if (!isNaN(d.getTime()) && (!groupsMap[g.Group_ID].lastOpened || d > new Date(groupsMap[g.Group_ID].lastOpened))) {
+                            groupsMap[g.Group_ID].lastOpened = g.Last_Opened;
                         }
                     }
                 });
-
-                globalEventsSummaryCache = eventsSummary;
-                globalNotRespondedList = globalNotResponded;
-
-                // Populate Copy Emails Dropdown
-                let copyEmailHtml = '<option value="ALL">All Events</option>';
-                for (const evtId in eventsSummary) {
-                    copyEmailHtml += `<option value="${evtId}">${eventsSummary[evtId].name}</option>`;
-                }
-                const copyFilterEl = document.getElementById('copy-email-filter');
-                if (copyFilterEl) copyFilterEl.innerHTML = copyEmailHtml;
-
-                renderCharts(eventsSummary);
-
-                // Render Event Accordions
-                Object.values(eventsSummary).forEach(event => {
-                    const totalAttending = event.respondedGroups.reduce((sum, group) => sum + group.attendees.length, 0);
-                    const totalInvited = event.respondedGroups.length + event.notRespondedGroups.length;
-                    
-                    const item = document.createElement('div');
-                    item.className = 'accordion-item';
-                    item.innerHTML = `
-                        <div class="accordion-header" role="button" tabindex="0" aria-expanded="false">
-                            <span>${event.name}</span>
-                            <div class="stat-grid">
-                                <div class="stat-box"><span class="number">${totalInvited}</span><span class="label"> Groups Invited</span></div>
-                                <div class="stat-box"><span class="number">${totalAttending}</span><span class="label"> People Attending</span></div>
-                                <div class="stat-box"><span class="number">${event.respondedGroups.length}</span><span class="label"> Groups Responded</span></div>
-                            </div>
-                        </div>
-                        <div class="accordion-content">
-                            <h3>Responded (${event.respondedGroups.length})</h3>
-                            <ul id="responded-${event.id}"></ul>
-                        </div>
-                    `;
-                    container.appendChild(item);
-                    
-                    const respondedList = document.getElementById(`responded-${event.id}`);
-                    if (event.respondedGroups.length > 0) {
-                        event.respondedGroups.sort((a, b) => b.attendees.length - a.attendees.length);
-                        event.respondedGroups.forEach(group => respondedList.appendChild(createGroupListItem(group, true)));
-                    } else {
-                        respondedList.innerHTML = '<li class="no-attendees">No groups have responded yet.</li>';
-                    }
+                
+                globalData.groups = Object.values(groupsMap);
+                globalData.events = data.events.reduce((acc, e) => ({...acc, [e.Event_ID]: e.Title}), {});
+                
+                // Sort guests and set primary guest names
+                globalData.groups.forEach(group => {
+                    if (!group.guests || group.guests.length === 0) { group.primaryGuest = 'Unnamed Group'; return; }
+                    group.guests.sort((a, b) => parseInt(String(a.Guest_ID||'0').split('-').pop(), 10) - parseInt(String(b.Guest_ID||'0').split('-').pop(), 10));
+                    group.primaryGuest = group.guests[0].Full_Name;
                 });
 
-                // Render Not Responded with Event Filter
-                const notRespondedContainer = document.getElementById('not-responded-container');
-                let filterHtml = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
-                        <h3 id="not-responded-header" style="margin: 0;">Not Responded (${globalNotResponded.length})</h3>
-                        <select id="not-responded-filter" onchange="filterNotResponded(this.value)" style="padding: 6px; border-radius: 4px; border: 1px solid var(--border-secondary); background-color: var(--bg-primary); color: var(--text-primary); font-size: 0.9em;">
-                            <option value="ALL">All Events</option>
-                `;
-                for (const evtId in eventsSummary) {
-                    filterHtml += `<option value="${evtId}">${eventsSummary[evtId].name}</option>`;
-                }
-                filterHtml += `</select></div><ul id="not-responded-list" style="padding-left: 0;"></ul>`;
-                notRespondedContainer.innerHTML = filterHtml;
-                filterNotResponded('ALL');
-
-                // Add Event Listeners for Accordions
-                document.querySelectorAll('.accordion-header').forEach(header => {
-                    const toggle = () => {
-                        const content = header.nextElementSibling;
-                        content.style.display = content.style.display === 'block' ? 'none' : 'block';
-                        header.setAttribute('aria-expanded', content.style.display === 'block');
-                    };
-                    header.addEventListener('click', toggle);
-                    header.addEventListener('keydown', e => (e.key === 'Enter' || e.key === ' ') && toggle());
-                });
-
-                // Hide loader, show dashboard content
-                document.getElementById('dashboard-loader').style.display = 'none';
-                document.getElementById('dashboard-content').style.display = 'block';
-
+                renderOverview(data);
+                renderDirectory();
+                
             } catch (err) {
-                // Hide loader and show error if it fails
+                showStatus('Failed to load data: ' + err.message, 'error');
+            } finally {
                 document.getElementById('dashboard-loader').style.display = 'none';
-                document.getElementById('dashboard-content').style.display = 'block';
-                container.innerHTML = '';
-                alert('Error loading summary: ' + err.message);
+                document.getElementById('tab-overview').style.display = ''; 
+                document.getElementById('tab-directory').style.display = '';
             }
         }
 
-        // Feature: Search Filter
-        function filterSearch() {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            document.querySelectorAll('.group-item').forEach(item => {
-                if (item.textContent.toLowerCase().includes(query)) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
+        // --- OVERVIEW TAB RENDERING ---
+        function renderOverview(data) {
+            const eventsSummary = {};
+            data.events.forEach(event => {
+                if (!event.Event_ID) return;
+                eventsSummary[event.Event_ID] = { id: event.Event_ID, name: event.Title || event.Event_ID, respondedGroups: [], notRespondedGroups: [] };
+            });
+
+            globalNotRespondedList = [];
+            
+            globalData.groups.forEach(group => {
+                const primaryGuest = group.guests[0];
+                const allowedEventsStr = primaryGuest.Allowed_Events || "";
+                
+                if (!group.hasResponded) {
+                    globalNotRespondedList.push(group);
+                }
+
+                for (const eventId in eventsSummary) {
+                    if (allowedEventsStr.includes(eventId)) {
+                        if (group.hasResponded) {
+                            const attendeeNames = new Set();
+                            let peopleInRsvp = 0;
+                            group.guests.forEach(guest => {
+                                try {
+                                    const rsvps = JSON.parse(guest.RSVPs);
+                                    const eventRsvp = rsvps[eventId];
+                                    if (eventRsvp) {
+                                        peopleInRsvp++; 
+                                        if (eventRsvp.status === 'Attending') attendeeNames.add(guest.Full_Name);
+                                        if (eventRsvp.additionalGuests && Array.isArray(eventRsvp.additionalGuests)) {
+                                            peopleInRsvp += eventRsvp.additionalGuests.length;
+                                            eventRsvp.additionalGuests.forEach(ag => { if (ag.status === 'Attending' && ag.name && ag.name.trim()) attendeeNames.add(ag.name.trim()); });
+                                        }
+                                    }
+                                } catch (e) {}
+                            });
+                            const attendeesArray = Array.from(attendeeNames);
+                            eventsSummary[eventId].respondedGroups.push({
+                                ...group, attendees: attendeesArray, attendingCount: attendeesArray.length, decliningCount: peopleInRsvp - attendeesArray.length
+                            });
+                        } else {
+                            let potentialInvitees = 0;
+                            group.guests.forEach(guest => { potentialInvitees += 1 + (parseInt(guest.Additional_Guests, 10) || 0); });
+                            eventsSummary[eventId].notRespondedGroups.push({ ...group, noResponseCount: potentialInvitees });
+                        }
+                    }
                 }
             });
-        }
 
-        // Feature: Countdown Banner
-        function renderCountdown(events) {
-            const container = document.getElementById('countdown-container');
-            if (!events || events.length === 0) {
-                container.innerHTML = '';
-                return;
+            globalEventsSummaryCache = eventsSummary;
+
+            // 1. Render Charts
+            let groupChartHtml = '<h3>Group Response Status</h3>';
+            let peopleChartHtml = '<h3 style="margin-top: 2rem;">Individual RSVP Status</h3>';
+            
+            for (const eventId in eventsSummary) {
+                const event = eventsSummary[eventId];
+                const respondedCount = event.respondedGroups.length;
+                const notRespondedCount = event.notRespondedGroups.length;
+                const totalGroups = respondedCount + notRespondedCount;
+                
+                const respondedPercent = totalGroups > 0 ? (respondedCount / totalGroups) * 100 : 0;
+                const notRespondedPercent = totalGroups > 0 ? (notRespondedCount / totalGroups) * 100 : 0;
+                
+                // Only show text labels if the bar takes up more than 18% of the width
+                const respondedText = respondedPercent > 18 ? `Responded: ${respondedCount}` : (respondedCount > 0 ? respondedCount : '');
+                const notRespondedText = notRespondedPercent > 18 ? `No Response: ${notRespondedCount}` : (notRespondedCount > 0 ? notRespondedCount : '');
+                
+                groupChartHtml += `
+                    <div class="chart-container">
+                        <span class="chart-title">${event.name}</span>
+                        <div class="chart-bar">
+                            <div class="chart-segment segment-responded" style="width: ${respondedPercent}%;" data-tooltip="Responded: ${respondedCount}">${respondedText}</div>
+                            <div class="chart-segment segment-no-response" style="width: ${notRespondedPercent}%; color: #333;" data-tooltip="No Response: ${notRespondedCount}">${notRespondedText}</div>
+                        </div>
+                    </div>
+                `;
+                
+                const attendingCount = event.respondedGroups.reduce((sum, group) => sum + (group.attendingCount || 0), 0);
+                const declinedCount = event.respondedGroups.reduce((sum, group) => sum + (group.decliningCount || 0), 0);
+                const noResponseCount = event.notRespondedGroups.reduce((sum, group) => sum + (group.noResponseCount || 0), 0);
+                const totalPeople = attendingCount + declinedCount + noResponseCount;
+                
+                const attendingPercent = totalPeople > 0 ? (attendingCount / totalPeople) * 100 : 0;
+                const declinedPercent = totalPeople > 0 ? (declinedCount / totalPeople) * 100 : 0;
+                const noResponsePercent = totalPeople > 0 ? (noResponseCount / totalPeople) * 100 : 0;
+                
+                // Only show text labels if the bar takes up more than 18% of the width
+                const attendingText = attendingPercent > 18 ? `Attending: ${attendingCount}` : (attendingCount > 0 ? attendingCount : '');
+                const declinedText = declinedPercent > 18 ? `Declined: ${declinedCount}` : (declinedCount > 0 ? declinedCount : '');
+                const indivNoResponseText = noResponsePercent > 18 ? `No Response: ${noResponseCount}` : (noResponseCount > 0 ? noResponseCount : '');
+                
+                peopleChartHtml += `
+                    <div class="chart-container">
+                        <span class="chart-title">${event.name}</span>
+                        <div class="chart-bar">
+                            <div class="chart-segment segment-attending" style="width: ${attendingPercent}%;" data-tooltip="Attending: ${attendingCount}">${attendingText}</div>
+                            <div class="chart-segment segment-declined" style="width: ${declinedPercent}%;" data-tooltip="Declined: ${declinedCount}">${declinedText}</div>
+                            <div class="chart-segment segment-no-response" style="width: ${noResponsePercent}%; color: #333;" data-tooltip="No Response: ${noResponseCount}">${indivNoResponseText}</div>
+                        </div>
+                    </div>
+                `;
             }
+            
+            groupChartHtml += `<div class="chart-legend"><div class="legend-item"><div class="legend-color segment-responded"></div> Responded</div><div class="legend-item"><div class="legend-color segment-no-response"></div> No Response</div></div>`;
+            peopleChartHtml += `<div class="chart-legend"><div class="legend-item"><div class="legend-color segment-attending"></div> Attending</div><div class="legend-item"><div class="legend-color segment-declined"></div> Declined</div><div class="legend-item"><div class="legend-color segment-no-response"></div> No Response</div></div>`;
+            document.getElementById('charts-container').innerHTML = groupChartHtml + peopleChartHtml;
+
+            // 2. Render Accordions
+            const accordionsContainer = document.getElementById('accordions-container');
+            accordionsContainer.innerHTML = '';
+            Object.values(eventsSummary).forEach(event => {
+                const totalAttending = event.respondedGroups.reduce((sum, group) => sum + group.attendees.length, 0);
+                const totalInvited = event.respondedGroups.length + event.notRespondedGroups.length;
+                
+                const item = document.createElement('div');
+                item.className = 'accordion-item';
+                item.innerHTML = `
+                    <div class="accordion-header" role="button" tabindex="0" aria-expanded="false">
+                        <span>${event.name}</span>
+                        <div class="stat-grid">
+                            <div class="stat-box"><span class="number">${totalInvited}</span><span class="label"> Groups Invited</span></div>
+                            <div class="stat-box"><span class="number">${totalAttending}</span><span class="label"> People Attending</span></div>
+                            <div class="stat-box"><span class="number">${event.respondedGroups.length}</span><span class="label"> Groups Responded</span></div>
+                        </div>
+                    </div>
+                    <div class="accordion-content">
+                        <h3>Responded (${event.respondedGroups.length})</h3>
+                        <ul id="responded-${event.id}"></ul>
+                    </div>
+                `;
+                accordionsContainer.appendChild(item);
+                
+                const respondedList = document.getElementById(`responded-${event.id}`);
+                if (event.respondedGroups.length > 0) {
+                    event.respondedGroups.sort((a, b) => b.attendees.length - a.attendees.length);
+                    event.respondedGroups.forEach(group => respondedList.appendChild(createGroupListItem(group, true)));
+                } else {
+                    respondedList.innerHTML = '<li class="no-attendees">No groups have responded yet.</li>';
+                }
+            });
+            
+            document.querySelectorAll('.accordion-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    const content = header.nextElementSibling;
+                    content.style.display = content.style.display === 'block' ? 'none' : 'block';
+                });
+            });
+
+            // 3. Render Copy Email & Notes Dropdowns
+            let eventFilterHtml = '<option value="ALL">All Events</option>';
+            for (const evtId in eventsSummary) {
+                eventFilterHtml += `<option value="${evtId}">${eventsSummary[evtId].name}</option>`;
+            }
+            document.getElementById('copy-email-filter').innerHTML = eventFilterHtml;
+            document.getElementById('notes-filter').innerHTML = eventFilterHtml;
+
+            // 4. Render Notes
+            filterNotes();
+
+            // 5. Render Not Responded Filter Dropdown
+            let filterHtml = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
+                    <h3 id="not-responded-header" style="margin: 0;">Not Responded (${globalNotRespondedList.length})</h3>
+                    <select id="not-responded-filter" onchange="filterNotResponded(this.value)" style="padding: 6px; border-radius: 4px; border: 1px solid var(--border-secondary); background-color: var(--bg-primary); color: var(--text-primary); font-size: 0.9em;">
+                        <option value="ALL">All Events</option>
+            `;
+            for (const evtId in eventsSummary) {
+                filterHtml += `<option value="${evtId}">${eventsSummary[evtId].name}</option>`;
+            }
+            filterHtml += `</select></div><ul id="not-responded-list" style="padding-left: 0;"></ul>`;
+            document.getElementById('not-responded-container').innerHTML = filterHtml;
+            filterNotResponded('ALL');
+
+            // 6. Render Countdown
             const now = new Date().getTime();
             let earliest = null;
-            
-            events.forEach(e => {
+            data.events.forEach(e => {
                 if (e.DateTime) {
                     const evtDate = new Date(e.DateTime).getTime();
-                    if (evtDate > now && (!earliest || evtDate < earliest)) {
-                        earliest = evtDate;
-                    }
+                    if (evtDate > now && (!earliest || evtDate < earliest)) earliest = evtDate;
                 }
             });
-            
             if (earliest) {
                 const days = Math.ceil((earliest - now) / (1000 * 60 * 60 * 24));
                 let text = days === 1 ? '1 Day' : `${days} Days`;
                 if (days === 0) text = 'Today!';
-                
-                container.innerHTML = `
+                document.getElementById('countdown-container').innerHTML = `
                     <div style="background-color: var(--status-info-bg); color: var(--status-info-text); padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 2rem; font-size: 1.1em; border: 1px solid var(--status-info-border);">
                         <strong>🎉 ${text} until the first event!</strong>
                     </div>`;
             } else {
-                container.innerHTML = '';
+                document.getElementById('countdown-container').innerHTML = '';
             }
         }
 
-        // Feature: Dietary Restrictions & Notes Panel
-        function renderNotes(groups) {
-            const container = document.getElementById('notes-container');
-            let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
-            let hasNotes = false;
+        // --- OVERVIEW HELPERS ---
+        function createGroupListItem(group, showAttendees) {
+            const li = document.createElement('li');
+            li.className = 'group-item'; 
             
-            Object.values(groups).forEach(group => {
-                let groupNote = null;
-                group.guests.forEach(g => {
-                    if (g.Notes && String(g.Notes).trim() !== '') {
-                        groupNote = String(g.Notes).trim();
-                    }
-                });
-                
-                if (groupNote) {
-                    hasNotes = true;
-                    html += `
-                        <li class="group-item" style="background-color: var(--highlight-row); border-left: 4px solid #f39c12; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
-                            <strong style="color: var(--text-header);">${group.primaryGuest}:</strong> 
-                            <span style="color: var(--text-primary); margin-left: 8px;">${groupNote}</span>
-                        </li>`;
-                }
+            const baseUrl = window.location.href.split('?')[0].replace('admin.html', 'index.html');
+            const invitationUrl = `${baseUrl}?id=${group.id}&preview=true`;
+            const allGuestNames = group.guests.map(g => g.Full_Name);
+            const guestCount = allGuestNames.length;
+            const attendeesText = showAttendees ? `<span class="attendee-list">${group.attendees.length > 0 ? group.attendees.join(', ') : '0 Attending'}</span>` : '';
+            
+            // Add opened badge if available
+            let openBadge = '';
+            if (group.firstOpened) {
+                openBadge = `<span style="font-size: 0.75em; background: var(--status-info-bg); color: var(--status-info-text); padding: 2px 6px; border-radius: 4px; margin-left: 8px;" title="First opened: ${formatDateTime(group.firstOpened)}">👀 Opened</span>`;
+            }
+
+            let guestListHtml = '';
+            if (showAttendees) {
+                guestListHtml = allGuestNames.map(name => `<li>${group.attendees.includes(name) ? '✅' : '❌'} ${name}</li>`).join('');
+            } else {
+                guestListHtml = allGuestNames.map(name => `<li>${name}</li>`).join('');
+            }
+            
+            li.innerHTML = `
+                <div class="accordion-header" role="button" tabindex="0" aria-expanded="false" style="padding: 0.5rem 1rem; font-size: 0.95em; border: 1px solid var(--border-primary); margin-bottom: 2px;">
+                    <a href="${invitationUrl}" target="_blank" onclick="event.stopPropagation()" style="color: var(--accent-primary);">
+                        <strong>${group.primaryGuest}</strong> (${guestCount} ${guestCount > 1 ? 'guests' : 'guest'})
+                    </a>
+                    ${openBadge}
+                    ${attendeesText}
+                </div>
+                <div class="accordion-content" style="padding: 0.5rem 1rem 0.5rem 2rem; font-size: 0.9em;">
+                    <ul>${guestListHtml}</ul>
+                </div>
+            `;
+            
+            const header = li.querySelector('.accordion-header');
+            header.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const content = header.nextElementSibling;
+                content.style.display = content.style.display === 'block' ? 'none' : 'block';
             });
-            html += '</ul>';
-            
-            if (!hasNotes) {
-                html = '<p class="no-attendees">No notes or dietary restrictions submitted yet.</p>';
-            }
-            container.innerHTML = html;
+            return li;
         }
 
-        // Feature: Copy Attending Emails
         function copyAttendeeEmails() {
             const eventIdFilter = document.getElementById('copy-email-filter').value;
             const emails = new Set();
-            
             for (const eventId in globalEventsSummaryCache) {
                 if (eventIdFilter === 'ALL' || eventIdFilter === eventId) {
                     globalEventsSummaryCache[eventId].respondedGroups.forEach(group => {
                         if (group.attendingCount > 0) { 
                             group.guests.forEach(g => {
-                                if (g.Email && String(g.Email).trim() !== '') {
-                                    emails.add(String(g.Email).trim());
-                                }
+                                if (g.Email && String(g.Email).trim() !== '') emails.add(String(g.Email).trim());
                             });
                         }
                     });
                 }
             }
-            
             const emailList = Array.from(emails).join(', ');
             if (emailList) {
                 navigator.clipboard.writeText(emailList).then(() => showStatus('Successfully copied attendee emails to clipboard!', 'success'));
@@ -732,235 +702,221 @@
             } else {
                 listContainer.innerHTML = '<li class="no-attendees">All invited groups have responded. Great job!</li>';
             }
-            
-            filterSearch();
         }
 
-        function renderCharts(eventsSummary) {
-            const chartsContainer = document.getElementById('charts-container');
-            let groupChartHtml = '<h3>Group Response Status</h3>';
-            let peopleChartHtml = '<h3 style="margin-top: 2rem;">Individual RSVP Status</h3>';
+        function filterNotes() {
+            const eventId = document.getElementById('notes-filter').value;
+            const attendingOnly = document.getElementById('notes-attending-filter').checked;
+            const container = document.getElementById('notes-container');
             
-            for (const eventId in eventsSummary) {
-                const event = eventsSummary[eventId];
-                const respondedCount = event.respondedGroups.length;
-                const notRespondedCount = event.notRespondedGroups.length;
-                const totalGroups = respondedCount + notRespondedCount;
-                
-                const respondedPercent = totalGroups > 0 ? (respondedCount / totalGroups) * 100 : 0;
-                const notRespondedPercent = totalGroups > 0 ? (notRespondedCount / totalGroups) * 100 : 0;
-                
-                groupChartHtml += `
-                    <div class="chart-container">
-                        <span class="chart-title">${event.name}</span>
-                        <div class="chart-bar">
-                            <div class="chart-segment segment-responded" style="width: ${respondedPercent}%;" data-tooltip="Responded: ${respondedCount}"></div>
-                            <div class="chart-segment segment-no-response" style="width: ${notRespondedPercent}%;" data-tooltip="No Response: ${notRespondedCount}"></div>
-                        </div>
-                    </div>
-                `;
-                
-                const attendingCount = event.respondedGroups.reduce((sum, group) => sum + (group.attendingCount || 0), 0);
-                const declinedCount = event.respondedGroups.reduce((sum, group) => sum + (group.decliningCount || 0), 0);
-                const noResponseCount = event.notRespondedGroups.reduce((sum, group) => sum + (group.noResponseCount || 0), 0);
-                const totalPeople = attendingCount + declinedCount + noResponseCount;
-                
-                const attendingPercent = totalPeople > 0 ? (attendingCount / totalPeople) * 100 : 0;
-                const declinedPercent = totalPeople > 0 ? (declinedCount / totalPeople) * 100 : 0;
-                const noResponsePercent = totalPeople > 0 ? (noResponseCount / totalPeople) * 100 : 0;
-                
-                peopleChartHtml += `
-                    <div class="chart-container">
-                        <span class="chart-title">${event.name}</span>
-                        <div class="chart-bar">
-                            <div class="chart-segment segment-attending" style="width: ${attendingPercent}%;" data-tooltip="Attending: ${attendingCount}"></div>
-                            <div class="chart-segment segment-declined" style="width: ${declinedPercent}%;" data-tooltip="Declined: ${declinedCount}"></div>
-                            <div class="chart-segment segment-no-response" style="width: ${noResponsePercent}%;" data-tooltip="No Response: ${noResponseCount}"></div>
-                        </div>
-                    </div>
-                `;
-            }
+            let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
+            let hasNotes = false;
+            let groupsToScan = [];
             
-            groupChartHtml += `<div class="chart-legend"><div class="legend-item"><div class="legend-color segment-responded"></div> Responded</div><div class="legend-item"><div class="legend-color segment-no-response"></div> No Response</div></div>`;
-            peopleChartHtml += `<div class="chart-legend"><div class="legend-item"><div class="legend-color segment-attending"></div> Attending</div><div class="legend-item"><div class="legend-color segment-declined"></div> Declined</div><div class="legend-item"><div class="legend-color segment-no-response"></div> No Response</div></div>`;
-            
-            chartsContainer.innerHTML = groupChartHtml + peopleChartHtml;
-        }
-
-        function createGroupListItem(group, showAttendees) {
-            const li = document.createElement('li');
-            li.className = 'group-item'; 
-            
-            const currentPath = new URL(window.location.href).pathname;
-            const invitationUrl = `${currentPath.substring(0, currentPath.lastIndexOf('/'))}/index.html?id=${group.id}`;
-            const allGuestNames = group.guests.map(g => g.Full_Name);
-            const guestCount = allGuestNames.length;
-            const attendeesText = showAttendees ? `<span class="attendee-list">${group.attendees.length > 0 ? group.attendees.join(', ') : '0 Attending'}</span>` : '';
-            
-            let guestListHtml = '';
-            if (showAttendees) {
-                guestListHtml = allGuestNames.map(name => `<li>${group.attendees.includes(name) ? '✅' : '❌'} ${name}</li>`).join('');
+            if (eventId === 'ALL') {
+                groupsToScan = globalData.groups;
             } else {
-                guestListHtml = allGuestNames.map(name => `<li>${name}</li>`).join('');
+                if (globalEventsSummaryCache[eventId]) {
+                    if (attendingOnly) {
+                        // Only include groups that have at least 1 person attending this specific event
+                        groupsToScan = globalEventsSummaryCache[eventId].respondedGroups.filter(g => g.attendingCount > 0);
+                    } else {
+                        // Include everyone invited to this event regardless of RSVP status
+                        groupsToScan = [
+                            ...globalEventsSummaryCache[eventId].respondedGroups,
+                            ...globalEventsSummaryCache[eventId].notRespondedGroups
+                        ];
+                    }
+                }
             }
             
-            li.innerHTML = `
-                <div class="accordion-header" role="button" tabindex="0" aria-expanded="false" style="padding: 0.5rem 1rem; font-size: 0.95em;">
-                    <a href="${invitationUrl}" target="_blank" onclick="event.stopPropagation()" style="color: var(--accent-primary);">
-                        <strong>${group.primaryGuest}</strong> (${guestCount} ${guestCount > 1 ? 'guests' : 'guest'})
-                    </a>
-                    ${attendeesText}
-                </div>
-                <div class="accordion-content" style="padding: 0.5rem 1rem 0.5rem 2rem; font-size: 0.9em;">
-                    <ul>${guestListHtml}</ul>
-                </div>
-            `;
-            
-            const header = li.querySelector('.accordion-header');
-            header.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const content = header.nextElementSibling;
-                content.style.display = content.style.display === 'block' ? 'none' : 'block';
-                header.setAttribute('aria-expanded', content.style.display === 'block');
+            groupsToScan.forEach(group => {
+                if (group.notes) {
+                    // If "All Events" is selected AND "Attending Only" is checked, 
+                    // verify they are attending at least one event overall.
+                    if (eventId === 'ALL' && attendingOnly) {
+                        let isAttendingSomething = false;
+                        for (const evt in globalEventsSummaryCache) {
+                            const match = globalEventsSummaryCache[evt].respondedGroups.find(g => g.id === group.id);
+                            if (match && match.attendingCount > 0) {
+                                isAttendingSomething = true;
+                                break;
+                            }
+                        }
+                        if (!isAttendingSomething) return; // Skip this group if they aren't attending anything
+                    }
+
+                    hasNotes = true;
+                    html += `
+                        <li class="group-item" style="background-color: var(--highlight-row); border-left: 4px solid #f39c12; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
+                            <strong style="color: var(--text-header);">${group.primaryGuest}:</strong> 
+                            <span style="color: var(--text-primary); margin-left: 8px;">${group.notes}</span>
+                        </li>`;
+                }
             });
-            return li;
+            html += '</ul>';
+            
+            if (!hasNotes) {
+                html = '<p class="no-attendees">No notes or dietary restrictions submitted for this selection.</p>';
+            }
+            container.innerHTML = html;
         }
 
-        // --- INVITATION MODAL LOGIC ---
-        function openInviteModal() {
-            document.getElementById('filter-unsent-invites').checked = true;
-            document.getElementById('select-all-invites').checked = false;
-            renderInviteList();
-            document.getElementById('invite-modal').style.display = 'flex';
+        // --- DIRECTORY TAB RENDERING ---
+        function setDirFilter(filter, el) {
+            currentFilter = filter;
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            renderDirectory();
         }
 
-        function renderInviteList() {
-            const listEl = document.getElementById('invite-recipient-list');
-            const showOnlyUnsent = document.getElementById('filter-unsent-invites').checked;
-            const selectAllCheckbox = document.getElementById('select-all-invites');
+        function renderDirectory() {
+            const container = document.getElementById('directory-container');
+            const search = document.getElementById('dir-search').value.toLowerCase();
             
-            listEl.innerHTML = '';
-            selectAllCheckbox.checked = false;
+            let html = '';
+            const baseUrl = window.location.href.split('?')[0].replace('admin.html', 'index.html');
+            
+            globalData.groups.forEach(group => {
+                const primary = group.guests[0];
+                const searchStr = (primary.Full_Name + (primary.Email || '') + group.id).toLowerCase();
+                if (search && !searchStr.includes(search)) return;
+                
+                if (currentFilter === 'unsent' && group.inviteSent) return;
+                if (currentFilter === 'no_response' && group.hasResponded) return;
+                if (currentFilter === 'notes' && !group.notes) return;
 
-            const filteredGroups = globalAllGroupsCache.filter(group => {
-                const isSent = group.guests.some(g => g.Invite_Sent && String(g.Invite_Sent).trim().toLowerCase() === 'yes');
-                if (showOnlyUnsent && isSent) return false;
-                return true; 
+                const statusBadge = group.hasResponded ? `<span class="badge badge-success">Responded</span>` 
+                                  : group.inviteSent ? `<span class="badge badge-warning">Invite Sent</span>`
+                                  : `<span class="badge" style="background:#eee;color:#666;">Unsent</span>`;
+
+                const magicLink = `${baseUrl}?id=${group.id}&preview=true`;
+
+                let guestsHtml = group.guests.map(g => {
+                    const rsvpObj = g.RSVPs ? JSON.parse(g.RSVPs) : {};
+                    let rsvpTags = Object.keys(globalData.events).filter(eId => (g.Allowed_Events||'').includes(eId)).map(eId => {
+                        const status = rsvpObj[eId] ? rsvpObj[eId].status : 'Pending';
+                        const color = status === 'Attending' ? 'green' : status === 'Decline' ? 'red' : 'gray';
+                        return `<span style="font-size:0.8em; color:${color}; border:1px solid ${color}; padding:2px 4px; border-radius:3px; margin-right:4px;">${globalData.events[eId]}: ${status}</span>`;
+                    }).join('');
+
+                    return `
+                    <div class="dir-guest">
+                        <div class="dir-guest-info" id="view-${g.Guest_ID}">
+                            <strong>${g.Full_Name}</strong><br>
+                            <span style="font-size:0.85em; color:var(--text-secondary);">${g.Email || 'No Email'} | Events: ${g.Allowed_Events || 'None'}</span><br>
+                            <div style="margin-top:4px;">${rsvpTags}</div>
+                        </div>
+                        
+                        <!-- Edit Form (Hidden by default) -->
+                        <div class="dir-guest-info" id="edit-${g.Guest_ID}" style="display:none;">
+                            <input type="text" id="edit-name-${g.Guest_ID}" class="inline-edit-input" value="${g.Full_Name}">
+                            <input type="text" id="edit-email-${g.Guest_ID}" class="inline-edit-input" value="${g.Email || ''}" placeholder="Email">
+                            <input type="text" id="edit-events-${g.Guest_ID}" class="inline-edit-input" value="${g.Allowed_Events || ''}" placeholder="Allowed Events">
+                            <button class="btn btn-small" onclick="saveGuestEdit('${g.Guest_ID}')">Save</button>
+                            <button class="btn btn-small btn-outline" onclick="toggleEdit('${g.Guest_ID}')">Cancel</button>
+                        </div>
+
+                        <div class="dir-guest-actions">
+                            <button class="btn btn-small btn-outline" onclick="toggleEdit('${g.Guest_ID}')">Edit Data</button>
+                            <button class="btn btn-small btn-outline" onclick="promptOverride('${g.Guest_ID}')">Override RSVP</button>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                let openDetails = '';
+                if (group.firstOpened) {
+                    openDetails = `<div style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;">First opened: ${formatDateTime(group.firstOpened)} ${group.lastOpened && group.lastOpened !== group.firstOpened ? `(Last: ${formatDateTime(group.lastOpened)})` : ''}</div>`;
+                }
+
+                html += `
+                <div class="dir-group">
+                    <div class="dir-header">
+                        <div>
+                            <strong>Group: ${group.id}</strong> ${statusBadge}
+                            ${openDetails}
+                        </div>
+                        <button class="btn btn-small btn-outline" onclick="copyToClip('${magicLink}')">📋 Copy Magic Link</button>
+                    </div>
+                    ${guestsHtml}
+                </div>`;
             });
+            
+            container.innerHTML = html || '<p>No guests match this filter.</p>';
+        }
 
-            if (filteredGroups.length === 0) {
-                listEl.innerHTML = '<li class="no-attendees">No groups match the current filter.</li>';
-                document.getElementById('send-invites-confirm').classList.add('hidden');
-                selectAllCheckbox.disabled = true;
+        // --- DIRECTORY ACTIONS ---
+        function copyToClip(text) {
+            navigator.clipboard.writeText(text);
+            showStatus('Magic Link Copied!', 'success');
+        }
+
+        function toggleEdit(guestId) {
+            const view = document.getElementById(`view-${guestId}`);
+            const edit = document.getElementById(`edit-${guestId}`);
+            if (view.style.display === 'none') {
+                view.style.display = 'block'; edit.style.display = 'none';
             } else {
-                filteredGroups.forEach(group => {
-                    const li = document.createElement('li');
-                    const isSent = group.guests.some(g => g.Invite_Sent && String(g.Invite_Sent).trim().toLowerCase() === 'yes');
-                    const badgeHtml = isSent ? '<span style="margin-left: 8px; font-size: 0.75em; background: var(--status-info-bg); color: var(--status-info-text); padding: 2px 6px; border-radius: 4px;">Sent</span>' : '';
-
-                    li.innerHTML = `
-                        <label style="display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" class="invite-checkbox" value="${group.id}">
-                            <span><strong>${group.primaryGuest}</strong> (${group.guests.length} guests)${badgeHtml}</span>
-                        </label>
-                    `;
-                    listEl.appendChild(li);
-                });
-                document.getElementById('send-invites-confirm').classList.remove('hidden');
-                selectAllCheckbox.disabled = false;
+                view.style.display = 'none'; edit.style.display = 'block';
             }
         }
 
-        function closeInviteModal() {
-            document.getElementById('invite-modal').style.display = 'none';
-        }
-
-        function toggleAllInviteCheckboxes(checked) {
-            document.querySelectorAll('.invite-checkbox').forEach(chk => chk.checked = checked);
-        }
-
-        async function sendInvites() {
-            const selectedGroupIds = Array.from(document.querySelectorAll('.invite-checkbox:checked')).map(chk => chk.value);
-            if (selectedGroupIds.length === 0) {
-                showStatus('No recipients selected.', 'info');
-                return;
-            }
-
-            const btn = document.getElementById('send-invites-confirm');
-            btn.disabled = true;
-            btn.textContent = 'Sending...';
-            showStatus('Sending invitation emails... (This may take a moment)', 'info');
-
+        async function saveGuestEdit(guestId) {
+            const data = {
+                guestId: guestId,
+                name: document.getElementById(`edit-name-${guestId}`).value,
+                email: document.getElementById(`edit-email-${guestId}`).value,
+                events: document.getElementById(`edit-events-${guestId}`).value
+            };
             try {
-                const result = await apiCall({ action: 'sendInvitations', auth: getAuth(), groupIds: selectedGroupIds });
-                showStatus(result && result.message ? result.message : 'Invitations sent successfully!', 'success');
-                closeInviteModal();
-                loadDashboard(); 
-            } catch (err) {
-                showStatus('Error: ' + (err.message || 'An unknown error occurred.'), 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Send Invitations';
-            }
+                showStatus('Saving...', 'info');
+                await apiCall({ action: 'updateGuest', auth: getAuth(), guestData: data });
+                showStatus('Saved successfully.', 'success');
+                loadData(); // Reload to get fresh data
+            } catch(e) { showStatus(e.message, 'error'); }
         }
 
-        // --- REMINDER MODAL LOGIC ---
-        function openReminderModal() {
-            const listEl = document.getElementById('reminder-recipient-list');
-            listEl.innerHTML = '';
-            
-            if (globalNotRespondedCache.length === 0) {
-                listEl.innerHTML = '<li>All groups have responded. No reminders to send.</li>';
-                document.getElementById('send-reminders-confirm').classList.add('hidden');
-            } else {
-                globalNotRespondedCache.forEach(group => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <label>
-                            <input type="checkbox" class="reminder-checkbox" value="${group.id}">
-                            <strong>${group.primaryGuest}</strong> (${group.guests.length} guests)
-                        </label>
-                    `;
-                    listEl.appendChild(li);
-                });
-                document.getElementById('send-reminders-confirm').classList.remove('hidden');
-            }
-            document.getElementById('reminder-modal').style.display = 'flex';
-        }
-
-        function closeReminderModal() {
-            document.getElementById('reminder-modal').style.display = 'none';
-        }
-
-        function toggleAllReminderCheckboxes(checked) {
-            document.querySelectorAll('.reminder-checkbox').forEach(chk => chk.checked = checked);
-        }
-
-        async function sendReminders() {
-            const selectedGroupIds = Array.from(document.querySelectorAll('.reminder-checkbox:checked')).map(chk => chk.value);
-            if (selectedGroupIds.length === 0) {
-                showStatus('No recipients selected.', 'info');
-                return;
-            }
-            
-            const btn = document.getElementById('send-reminders-confirm');
-            btn.disabled = true;
-            btn.textContent = 'Sending...';
-            showStatus('Sending reminder emails...', 'info');
+        async function promptOverride(guestId) {
+            const eventId = prompt("Enter Event ID to override (e.g. EVT-1):");
+            if (!eventId) return;
+            const status = prompt("Enter Status ('Attending' or 'Decline'):");
+            if (!status) return;
             
             try {
-                const result = await apiCall({ action: 'sendReminders', auth: getAuth(), groupIds: selectedGroupIds });
-                showStatus(result && result.message ? result.message : 'Reminders sent successfully!', 'success');
-                closeReminderModal();
-            } catch (err) {
-                showStatus('Error: ' + (err.message || 'An unknown error occurred.'), 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Send Reminders';
-            }
+                showStatus('Overriding RSVP...', 'info');
+                await apiCall({ action: 'overrideRSVP', auth: getAuth(), guestId, eventId, status });
+                showStatus('RSVP Overridden.', 'success');
+                loadData();
+            } catch(e) { showStatus(e.message, 'error'); }
         }
 
-        document.getElementById('password').addEventListener('keyup', e => e.key === "Enter" && (e.preventDefault(), login()));
+        async function createNewGroup() {
+            const data = {
+                name: document.getElementById('new-group-name').value,
+                email: document.getElementById('new-group-email').value,
+                events: document.getElementById('new-group-events').value
+            };
+            if (!data.name) return alert('Name is required.');
+            
+            try {
+                showStatus('Creating group...', 'info');
+                document.getElementById('add-group-modal').style.display = 'none';
+                await apiCall({ action: 'createGroup', auth: getAuth(), guestData: data });
+                showStatus('Group created.', 'success');
+                loadData();
+            } catch(e) { showStatus(e.message, 'error'); }
+        }
+
+        // --- MASS ACTIONS ---
+        async function sendBatchAction(action) {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+            showStatus('Sending emails...', 'info');
+            try {
+                const res = await apiCall({ action: action, auth: getAuth() });
+                showStatus(res.message, 'success');
+                loadData();
+            } catch(e) { showStatus(e.message, 'error'); }
+        }
     </script>
 </body>
 </html>

@@ -353,6 +353,7 @@
     async function initDirectLookup() {
       const urlParams = new URLSearchParams(window.location.search);
       const groupId = urlParams.get('id') || urlParams.get('groupId');
+      const isPreview = urlParams.get('preview') === 'true';
 
       if (!groupId || !groupId.trim()) {
         showError("Missing Group Code", "Please use the personalized link sent in your email invitation or contact the host for assistance.");
@@ -360,7 +361,7 @@
       }
 
       try {
-        const response = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(groupId.trim())}`);
+        const response = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(groupId.trim())}&preview=${isPreview}`);
         const data = await response.json();
 
         // Render global text from Config tab

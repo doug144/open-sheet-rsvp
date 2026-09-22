@@ -25,7 +25,17 @@ This project was born out of a real-world need. When planning a family celebrati
 - **Password-Protected Admin Dashboard:** A separate `admin.html` page to view real-time RSVP stats, charts, and send reminder emails to non-responders.
 - **Batch Selection Shortcut:** One-click button to copy guest choices across all sub-events.
 - **Custom Google Sheet Functions:** Includes custom spreadsheet formulas (like `=EVENT_SUMMARY()`) to track real-time attendance rollups.
-
+- **Interactive CRM Admin Dashboard (`admin.html`):**
+  - **Tabbed Overview & Guest Directory:** Seamlessly switch between analytical charts and a powerful searchable guest database.
+  - **Live Search & Quick Filters:** Filter the directory instantly by status (All, Unsent, No Response, Has Notes) or search by name, email, or group ID.
+  - **Inline Guest Data Editing:** Update guest names, emails, or allowed events directly from the dashboard without touching the spreadsheet.
+  - **Manual RSVP Overrides:** Manually override or log responses for guests who call, text, or email their RSVP.
+  - **Magic Link Generator:** One-click copying of personalized, clean invitation links for individual groups.
+- **Engagement & Open Tracking:**
+  - Automatically logs the **First Opened** and **Last Opened** timestamps when guests view their personalized invite link.
+  - **Admin Preview Mode:** Automatically injects a `preview=true` parameter when testing or copying links from the dashboard to keep open-tracking metrics clean and unskewed.
+- **Advanced Dietary & Notes Filtering:** Filter dietary restriction notes by specific sub-events with an optional "Attending Only" toggle.
+- **Enhanced Data Visualization:** Response charts permanently display count labels with dynamic text scaling based on segment size.
 ---
 
 ## 🛠 Architecture Overview
@@ -55,7 +65,7 @@ Reads / Writes
 3. Your sheet contains three primary tabs:
    - **`Config`**: Global settings (`event_title`, `event_dates`, `host_message`, `email_salutation`, `email_signature`, etc.).
    - **`Events`**: List of sub-events (`Event_ID`, `Title`, `Date_Time`, `Location`, `Description`, `Duration_Minutes`).
-   - **`Guests`**: Guest database (`Guest_ID`, `Group_ID`, `Full_Name`, `Email`, `Allowed_Events`, `Additional_Guests`, `RSVPs`, `Notes`, `Invite_Sent`).
+   - **`Guests`**: Guest database (`Guest_ID`, `Group_ID`, `Full_Name`, `Email`, `Allowed_Events`, `Additional_Guests`, `RSVPs`, `Notes`, `Invite_Sent`, `First_Opened`, `Last_Opened`).
 
 ---
 
