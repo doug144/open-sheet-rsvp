@@ -277,12 +277,196 @@ function getGlobalConfig(ss) {
 }
 
 /**
+ * Helper function to retrieve the primary guest's full name from a group or guest ID.
+ */
+function getPrimaryGuestNameForGroup(groupId, guestId, ss) {
+  try {
+    var guestsSheet = ss.getSheetByName("Guests");
+    if (!guestsSheet) return "";
+    
+    var data = guestsSheet.getDataRange().getValues();
+    if (data.length <= 1) return "";
+    
+    var headers = data[0];
+    var groupIdCol = headers.indexOf("Group_ID");
+    var guestIdCol = headers.indexOf("Guest_ID");
+    var fullNameCol = headers.indexOf("Full_Name");
+    
+    if (fullNameCol === -1) return "";
+    
+    // 1. Try to find by guestId first
+    if (guestIdCol !== -1 && guestId) {
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][guestIdCol] && data[i][guestIdCol].toString().trim() === guestId.toString().trim()) {
+          var name = data[i][fullNameCol];
+          if (name && name.toString().trim()) return name.toString().trim();
+        }
+      }
+    }
+    
+    // 2. Fallback to finding the first/primary guest in the Group_ID
+    if (groupIdCol !== -1 && groupId) {
+      for (var j = 1; j < data.length; j++) {
+        if (data[j][groupIdCol] && data[j][groupIdCol].toString().trim() === groupId.toString().trim()) {
+          var groupName = data[j][fullNameCol];
+          if (groupName && groupName.toString().trim()) return groupName.toString().trim();
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log("Error finding primary guest name: " + e.message);
+  }
+  return "";
+}
+
+/**
+ * Sends an HTML notification email to the admin with full RSVP details grouped by event.
+ */
+function sendAdminNotification(adminEmail, guestName, payload, ss, websiteUrl) {
+  try {
+    // 1. Get Event Titles from the spreadsheet for readable emails
+    var eventsSheet = ss.getSheetByName("Events");
+    var eventMap = {};
+    if (eventsSheet) {
+      var eventsData = eventsSheet.getDataRange().getValues();
+      var headers = eventsData.shift();
+      var idCol = headers.indexOf("Event_ID");
+      var titleCol = headers.indexOf("Title");
+      
+      if (idCol !== -1 && titleCol !== -1) {
+        eventsData.forEach(function(row) {
+          eventMap[row[idCol]] = row[titleCol];
+        });
+      }
+    }
+
+    // 2. Fetch Guests data to map IDs back to their names
+    var guestsSheet = ss.getSheetByName("Guests");
+    var guestsData = guestsSheet ? guestsSheet.getDataRange().getValues() : [];
+    var fullNameCol = guestsData.length > 0 ? guestsData[0].indexOf("Full_Name") : -1;
+    var guestIdCol = guestsData.length > 0 ? guestsData[0].indexOf("Guest_ID") : -1;
+
+    // 3. Resolve the primary guest name safely even if guestName is blank/generic or guest has no email
+    var resolvedPrimaryName = "";
+    if (guestName && guestName !== "A guest" && guestName !== "Guest") {
+      resolvedPrimaryName = guestName;
+    } else {
+      var sampleGuestId = payload.guestResponses && payload.guestResponses[0] ? payload.guestResponses[0].guestId : "";
+      resolvedPrimaryName = getPrimaryGuestNameForGroup(payload.groupId, sampleGuestId, ss);
+    }
+
+    // 4. Group attendance by event
+    var eventBreakdown = {};
+    
+    payload.guestResponses.forEach(function(response) {
+       var primaryName = "Guest";
+       
+       if (guestIdCol !== -1 && fullNameCol !== -1) {
+         for (var i = 1; i < guestsData.length; i++) {
+           if (guestsData[i][guestIdCol] == response.guestId) {
+             primaryName = guestsData[i][fullNameCol] || "Guest";
+             break;
+           }
+         }
+       }
+
+       for (var eventId in response.rsvps) {
+         if (!eventBreakdown[eventId]) {
+           eventBreakdown[eventId] = [];
+         }
+         
+         var rsvpData = response.rsvps[eventId];
+         
+         // Add primary guest
+         eventBreakdown[eventId].push({
+           name: primaryName,
+           status: rsvpData.status
+         });
+         
+         // Add plus ones
+         if (rsvpData.additionalGuests && rsvpData.additionalGuests.length > 0) {
+           rsvpData.additionalGuests.forEach(function(guest) {
+             eventBreakdown[eventId].push({
+               name: guest.name || "Guest",
+               status: guest.status
+             });
+           });
+         }
+       }
+    });
+
+    var finalSubjectName = resolvedPrimaryName || "A Guest";
+    var subject = "New RSVP Received: " + finalSubjectName;
+
+    // 5. Build the Email HTML Body
+    var htmlBody = "<div style='font-family: Arial, sans-serif; max-width: 600px; color: #333;'>";
+    htmlBody += "<h2 style='color: #2c3e50;'>New RSVP Submission</h2>";
+    htmlBody += "<p><strong>" + finalSubjectName + "</strong> has just submitted an RSVP.</p>";
+    htmlBody += "<hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;'>";
+    htmlBody += "<h3 style='color: #4a90e2;'>Attendance Details:</h3>";
+    
+    for (var eventId in eventBreakdown) {
+       var eTitle = eventMap[eventId] || eventId;
+       
+       htmlBody += "<div style='margin-bottom: 15px;'>";
+       htmlBody += "<h4 style='margin: 0 0 5px 0; color: #2c3e50; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px;'>" + eTitle + "</h4>";
+       htmlBody += "<ul style='margin: 5px 0 0 0; padding-left: 20px; font-size: 0.95em;'>";
+       
+       eventBreakdown[eventId].forEach(function(person) {
+         var statusColor = person.status === "Attending" ? "#28a745" : "#dc3545";
+         htmlBody += "<li style='margin-bottom: 4px;'><strong>" + person.name + ":</strong> <span style='color: " + statusColor + "; font-weight: bold;'>" + person.status + "</span></li>";
+       });
+       
+       htmlBody += "</ul></div>";
+    }
+
+    if (payload.notes) {
+      htmlBody += "<h3 style='color: #4a90e2; margin-top: 20px;'>Guest Notes/Dietary Restrictions:</h3>";
+      htmlBody += "<p style='background-color: #f8f9fa; padding: 12px; border-left: 4px solid #f39c12; border-radius: 4px;'>" + payload.notes + "</p>";
+    }
+    
+    // Clean Admin URL Resolution
+    var adminUrl = "";
+    if (websiteUrl && websiteUrl.indexOf("http") === 0) {
+      // Remove query parameters or trailing index.html
+      var cleanBase = websiteUrl.split('?')[0];
+      if (cleanBase.endsWith('/index.html')) {
+        adminUrl = cleanBase.substring(0, cleanBase.length - 'index.html'.length) + 'admin.html';
+      } else if (cleanBase.endsWith('/')) {
+        adminUrl = cleanBase + 'admin.html';
+      } else {
+        adminUrl = cleanBase + '/admin.html';
+      }
+    } else {
+      adminUrl = "YOUR_ADMIN_URL_HERE";
+    }
+    
+    htmlBody += "<p style='margin-top: 30px; text-align: center;'>";
+    htmlBody += "<a href='" + adminUrl + "' style='background-color: #4a90e2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;'>Open Admin Panel</a>";
+    htmlBody += "</p></div>";
+    
+    MailApp.sendEmail({
+      to: adminEmail,
+      subject: subject,
+      htmlBody: htmlBody
+    });
+    Logger.log("Detailed admin notification sent to " + adminEmail);
+    
+  } catch (err) {
+    Logger.log("Failed to send detailed admin notification. Error: " + err.message);
+  }
+}
+
+/**
  * Sends a confirmation email to the guest after they RSVP, including a summary of their response.
- * @param {string} email The recipient's email address.
- * @param {string} name The recipient's name.
- * @param {Object} payload The submitted RSVP data.
  */
 function sendConfirmationEmail(email, name, payload) {
+  // If there's no email provided for this guest/group, abort sending confirmation email
+  if (!email || !email.trim()) {
+    Logger.log("No email provided for guest/group. Skipping confirmation email.");
+    return;
+  }
+
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var globalConfig = getGlobalConfig(ss);
@@ -295,7 +479,14 @@ function sendConfirmationEmail(email, name, payload) {
     var websiteUrl = config.websiteUrl;
     var personalizedUrl = websiteUrl + (websiteUrl.indexOf('?') === -1 ? '?' : '&') + 'id=' + encodeURIComponent(payload.groupId);
 
-    // 1. Fetch Event Titles for the summary
+    // Resolve proper guest name if 'name' was empty
+    var resolvedName = name;
+    if (!resolvedName || resolvedName === "Guest" || resolvedName === "A guest") {
+      var sampleGuestId = payload.guestResponses && payload.guestResponses[0] ? payload.guestResponses[0].guestId : "";
+      resolvedName = getPrimaryGuestNameForGroup(payload.groupId, sampleGuestId, ss) || "Guest";
+    }
+
+    // 1. Fetch Event Titles
     var eventsSheet = ss.getSheetByName("Events");
     var eventMap = {};
     if (eventsSheet) {
@@ -323,7 +514,6 @@ function sendConfirmationEmail(email, name, payload) {
     payload.guestResponses.forEach(function(response) {
        var primaryName = "Guest";
        
-       // Lookup the guest's real name using their Guest_ID
        if (guestIdCol !== -1 && fullNameCol !== -1) {
          for (var i = 1; i < guestsData.length; i++) {
            if (guestsData[i][guestIdCol] == response.guestId) {
@@ -383,7 +573,7 @@ function sendConfirmationEmail(email, name, payload) {
     // 5. Construct the final email body
     var htmlBody = 
         "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;'>" +
-        "<h2 style='color: #2c3e50;'>" + (globalConfig.email_salutation || "Hello") + " " + name + ",</h2>" +
+        "<h2 style='color: #2c3e50;'>" + (globalConfig.email_salutation || "Hello") + " " + resolvedName + ",</h2>" +
         "<p>Thank you for your RSVP for <strong>" + eventTitle + "</strong>. Your response has been securely recorded.</p>" +
         summaryHtml + 
         "<p>If you need to make any changes, you can <a href='" + personalizedUrl + "' style='color: #4a90e2; font-weight: bold;'>click here to return to your personalized invitation</a>.</p>" +
@@ -399,132 +589,6 @@ function sendConfirmationEmail(email, name, payload) {
     Logger.log("Confirmation email sent to " + email);
   } catch (err) {
     Logger.log("Failed to send confirmation email to " + email + ". Error: " + err.message);
-  }
-}
-
-/**
- * Sends an HTML notification email to the admin with full RSVP details grouped by event.
- */
-function sendAdminNotification(adminEmail, guestName, payload, ss, websiteUrl) {
-  try {
-    // 1. Get Event Titles from the spreadsheet for readable emails
-    var eventsSheet = ss.getSheetByName("Events");
-    var eventMap = {};
-    if (eventsSheet) {
-      var eventsData = eventsSheet.getDataRange().getValues();
-      var headers = eventsData.shift();
-      var idCol = headers.indexOf("Event_ID");
-      var titleCol = headers.indexOf("Title");
-      
-      if (idCol !== -1 && titleCol !== -1) {
-        eventsData.forEach(function(row) {
-          eventMap[row[idCol]] = row[titleCol];
-        });
-      }
-    }
-
-    // 2. Fetch Guests data to map IDs back to their names
-    var guestsSheet = ss.getSheetByName("Guests");
-    var guestsData = guestsSheet ? guestsSheet.getDataRange().getValues() : [];
-    var fullNameCol = guestsData.length > 0 ? guestsData[0].indexOf("Full_Name") : -1;
-    var guestIdCol = guestsData.length > 0 ? guestsData[0].indexOf("Guest_ID") : -1;
-
-    // 3. Group attendance by event and extract real names
-    var eventBreakdown = {};
-    var resolvedPrimaryName = "";
-    
-    payload.guestResponses.forEach(function(response) {
-       var primaryName = "Guest";
-       
-       // Lookup the guest's real name using their Guest_ID
-       if (guestIdCol !== -1 && fullNameCol !== -1) {
-         for (var i = 1; i < guestsData.length; i++) {
-           if (guestsData[i][guestIdCol] == response.guestId) {
-             primaryName = guestsData[i][fullNameCol] || "Guest";
-             break;
-           }
-         }
-       }
-       
-       // Save the very first name we find to use in the email subject
-       if (!resolvedPrimaryName && primaryName !== "Guest") {
-           resolvedPrimaryName = primaryName;
-       }
-
-       for (var eventId in response.rsvps) {
-         if (!eventBreakdown[eventId]) {
-           eventBreakdown[eventId] = [];
-         }
-         
-         var rsvpData = response.rsvps[eventId];
-         
-         // Add primary guest
-         eventBreakdown[eventId].push({
-           name: primaryName,
-           status: rsvpData.status
-         });
-         
-         // Add plus ones
-         if (rsvpData.additionalGuests && rsvpData.additionalGuests.length > 0) {
-           rsvpData.additionalGuests.forEach(function(guest) {
-             eventBreakdown[eventId].push({
-               name: guest.name || "Guest",
-               status: guest.status
-             });
-           });
-         }
-       }
-    });
-
-    // Use the fetched name if the one passed from the frontend is missing or generic
-    var finalSubjectName = guestName && guestName !== "A guest" && guestName !== "Guest" ? guestName : resolvedPrimaryName;
-    var subject = "New RSVP Received: " + (finalSubjectName || "A Guest");
-
-    // 4. Build the Email HTML Body
-    var htmlBody = "<div style='font-family: Arial, sans-serif; max-width: 600px; color: #333;'>";
-    htmlBody += "<h2 style='color: #2c3e50;'>New RSVP Submission</h2>";
-    htmlBody += "<p><strong>" + (finalSubjectName || "A guest") + "</strong> has just submitted an RSVP.</p>";
-    htmlBody += "<hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;'>";
-    htmlBody += "<h3 style='color: #4a90e2;'>Attendance Details:</h3>";
-    
-    for (var eventId in eventBreakdown) {
-       var eTitle = eventMap[eventId] || eventId;
-       
-       htmlBody += "<div style='margin-bottom: 15px;'>";
-       htmlBody += "<h4 style='margin: 0 0 5px 0; color: #2c3e50; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px;'>" + eTitle + "</h4>";
-       htmlBody += "<ul style='margin: 5px 0 0 0; padding-left: 20px; font-size: 0.95em;'>";
-       
-       eventBreakdown[eventId].forEach(function(person) {
-         var statusColor = person.status === "Attending" ? "#28a745" : "#dc3545";
-         htmlBody += "<li style='margin-bottom: 4px;'><strong>" + person.name + ":</strong> <span style='color: " + statusColor + "; font-weight: bold;'>" + person.status + "</span></li>";
-       });
-       
-       htmlBody += "</ul></div>";
-    }
-
-    if (payload.notes) {
-      htmlBody += "<h3 style='color: #4a90e2; margin-top: 20px;'>Guest Notes/Dietary Restrictions:</h3>";
-      htmlBody += "<p style='background-color: #f8f9fa; padding: 12px; border-left: 4px solid #f39c12; border-radius: 4px;'>" + payload.notes + "</p>";
-    }
-    
-    var adminUrl = websiteUrl ? websiteUrl.replace("index.html", "admin.html") : "YOUR_ADMIN_URL_HERE";
-    if (adminUrl.indexOf("admin.html") === -1 && adminUrl !== "YOUR_ADMIN_URL_HERE") {
-       adminUrl = adminUrl.substring(0, adminUrl.lastIndexOf('/')) + "/admin.html";
-    }
-    
-    htmlBody += "<p style='margin-top: 30px; text-align: center;'>";
-    htmlBody += "<a href='" + adminUrl + "' style='background-color: #4a90e2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;'>Open Admin Panel</a>";
-    htmlBody += "</p></div>";
-    
-    MailApp.sendEmail({
-      to: adminEmail,
-      subject: subject,
-      htmlBody: htmlBody
-    });
-    Logger.log("Detailed admin notification sent to " + adminEmail);
-    
-  } catch (err) {
-    Logger.log("Failed to send detailed admin notification. Error: " + err.message);
   }
 }
 
