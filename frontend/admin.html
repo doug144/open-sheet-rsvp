@@ -620,8 +620,10 @@
             const li = document.createElement('li');
             li.className = 'group-item'; 
             
-            const baseUrl = window.location.href.split('?')[0].replace('admin.html', 'index.html');
+            const currentUrl = window.location.href.split('?')[0];
+            const baseUrl = currentUrl.replace(/admin(\.html)?$/i, 'index.html');
             const invitationUrl = `${baseUrl}?id=${group.id}&preview=true`;
+
             const allGuestNames = group.guests.map(g => g.Full_Name);
             const guestCount = allGuestNames.length;
             const attendeesText = showAttendees ? `<span class="attendee-list">${group.attendees.length > 0 ? group.attendees.join(', ') : '0 Attending'}</span>` : '';
