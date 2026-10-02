@@ -318,6 +318,8 @@
     <div id="thankyou-state" class="hidden" style="text-align: center;">
       <h2 id="thankyou-title" style="color: var(--success);">Thank You!</h2>
       <p>Your RSVP has been successfully recorded. A confirmation email has been sent.</p>
+      
+      <div id="calendar-links-container" style="margin-top: 25px; text-align: left; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;"></div>
     </div>
 
     <!-- TOAST NOTIFICATION -->
@@ -864,6 +866,7 @@
 
         return {
           row: primaryGuest.row,
+          guestId: primaryGuest.guestId,
           rsvps: rsvps
         };
       });
@@ -881,8 +884,58 @@
           body: JSON.stringify(payload)
         });
 
+        // Build frontend calendar buttons directly from backend-provided event URLs
+        const calContainer = document.getElementById("calendar-links-container");
+        const thankyouState = document.getElementById("thankyou-state");
+
+        // Collect all event IDs where at least one person is attending
+        const attendingEventIds = new Set();
+        payload.guestResponses.forEach(resp => {
+          for (const evtId in resp.rsvps) {
+            const rsvp = resp.rsvps[evtId];
+            if (rsvp.status === "Attending") {
+              attendingEventIds.add(evtId);
+            }
+            if (Array.isArray(rsvp.additionalGuests) && rsvp.additionalGuests.some(ag => ag.status === "Attending")) {
+              attendingEventIds.add(evtId);
+            }
+          }
+        });
+
+        // Render links provided by the backend
+        if (attendingEventIds.size > 0 && groupData && groupData.eventsMap) {
+          let calHtml = '<h3 style="margin-top:0; font-size: 1.1em; color: var(--primary);">Add Attending Events to Calendar:</h3>';
+          let itemsRendered = 0;
+
+          attendingEventIds.forEach(evtId => {
+            const evt = groupData.eventsMap[evtId];
+            if (evt && evt.gCalUrl) {
+              calHtml += `
+                <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0;">
+                  <strong style="color: var(--primary);">${evt.title}</strong>
+                  ${evt.dateTime ? `<div style="font-size: 0.85em; color: #666; margin-top: 2px;">${formatEventDate(evt.dateTime)}</div>` : ''}
+                  <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="${evt.gCalUrl}" target="_blank" style="background: #4285F4; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.85em; font-weight: bold;">+ Google Calendar</a>
+                    <a href="${evt.icsUrl}" download="${evt.title || 'event'}.ics" style="background: #6c757d; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.85em; font-weight: bold;">📅 Apple / Outlook / iCal</a>
+                  </div>
+                </div>
+              `;
+              itemsRendered++;
+            }
+          });
+
+          if (calContainer && itemsRendered > 0) {
+            calContainer.innerHTML = calHtml;
+            calContainer.classList.remove("hidden");
+            calContainer.style.display = "block";
+          }
+        } else if (calContainer) {
+          calContainer.style.display = "none";
+        }
+
+        // Transition UI
         document.getElementById("rsvp-state").classList.add("hidden");
-        document.getElementById("thankyou-state").classList.remove("hidden");
+        thankyouState.classList.remove("hidden");
       } catch (err) {
         console.error(err);
         alert("An error occurred while saving your RSVP. Please try again.");

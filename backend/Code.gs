@@ -18,6 +18,21 @@ function getScriptConfig() {
   };
 }
 
+/**
+ * Retrieves key-value pairs from the 'Config' sheet.
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss The active spreadsheet.
+ * @returns {Object} An object containing the configuration.
+ */
+function getGlobalConfig(ss) {
+  var configSheet = ss.getSheetByName("Config");
+  if (!configSheet) return {};
+  var data = configSheet.getDataRange().getValues();
+  return data.reduce(function(obj, row) {
+    if (row[0]) obj[row[0]] = row[1];
+    return obj;
+  }, {});
+}
+
 // =================================================================
 // WEB APP ENTRY POINTS (doGet, doPost)
 // =================================================================
@@ -76,9 +91,11 @@ function doGet(e) {
         map[event.Event_ID] = {
           id: event.Event_ID,
           title: event.Title,
-          dateTime: event.DateTime,
+          dateTime: event.Date_Time,
           location: event.Location,
-          description: event.Description
+          description: event.Description,
+          gCalUrl: createGoogleCalendarUrl(event.Title, event.Description, event.Location, event.Date_Time, event.Duration_Minutes),
+          icsUrl: createIcsDataUri(event.Title, event.Description, event.Location, event.Date_Time, event.Duration_Minutes)
         };
       }
       return map;
@@ -259,21 +276,6 @@ function sheetToObjects(sheet) {
 function createJsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
-}
-
-/**
- * Retrieves key-value pairs from the 'Config' sheet.
- * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss The active spreadsheet.
- * @returns {Object} An object containing the configuration.
- */
-function getGlobalConfig(ss) {
-  var configSheet = ss.getSheetByName("Config");
-  if (!configSheet) return {};
-  var data = configSheet.getDataRange().getValues();
-  return data.reduce(function(obj, row) {
-    if (row[0]) obj[row[0]] = row[1];
-    return obj;
-  }, {});
 }
 
 /**
@@ -486,27 +488,37 @@ function sendConfirmationEmail(email, name, payload) {
       resolvedName = getPrimaryGuestNameForGroup(payload.groupId, sampleGuestId, ss) || "Guest";
     }
 
-    // 1. Fetch Event Titles
+    // 1. Fetch Events using sheetToObjects and prepare calendar links / attachments
     var eventsSheet = ss.getSheetByName("Events");
-    var eventMap = {};
+    var eventDetailsMap = {};
+    var emailAttachments = [];
+
     if (eventsSheet) {
-      var eventsData = eventsSheet.getDataRange().getValues();
-      var headers = eventsData.shift();
-      var idCol = headers.indexOf("Event_ID");
-      var titleCol = headers.indexOf("Title");
-      
-      if (idCol !== -1 && titleCol !== -1) {
-        eventsData.forEach(function(row) {
-          eventMap[row[idCol]] = row[titleCol];
-        });
-      }
+      var eventsList = sheetToObjects(eventsSheet);
+      eventsList.forEach(function(evt) {
+        if (!evt.Event_ID) return;
+
+        var eTitle = evt.Title || evt.Event_ID;
+        var dateTimeVal = evt.Date_Time || "";
+        var locationVal = evt.Location || "";
+        var descVal = evt.Description || "";
+        var durationVal = evt.Duration_Minutes || 120;
+
+        var gCalUrl = createGoogleCalendarUrl(eTitle, descVal, locationVal, dateTimeVal, durationVal);
+        var icsAttachment = createIcsFile(eTitle, descVal, locationVal, dateTimeVal, durationVal);
+
+        eventDetailsMap[evt.Event_ID] = {
+          title: eTitle,
+          dateTime: dateTimeVal,
+          gCalUrl: gCalUrl,
+          attachment: icsAttachment
+        };
+      });
     }
 
-    // 2. Fetch Guests data to map IDs back to their names
+    // 2. Fetch Guests using sheetToObjects
     var guestsSheet = ss.getSheetByName("Guests");
-    var guestsData = guestsSheet ? guestsSheet.getDataRange().getValues() : [];
-    var fullNameCol = guestsData.length > 0 ? guestsData[0].indexOf("Full_Name") : -1;
-    var guestIdCol = guestsData.length > 0 ? guestsData[0].indexOf("Guest_ID") : -1;
+    var guestsList = guestsSheet ? sheetToObjects(guestsSheet) : [];
 
     // 3. Group attendance by event
     var eventBreakdown = {};
@@ -514,12 +526,12 @@ function sendConfirmationEmail(email, name, payload) {
     payload.guestResponses.forEach(function(response) {
        var primaryName = "Guest";
        
-       if (guestIdCol !== -1 && fullNameCol !== -1) {
-         for (var i = 1; i < guestsData.length; i++) {
-           if (guestsData[i][guestIdCol] == response.guestId) {
-             primaryName = guestsData[i][fullNameCol] || "Guest";
-             break;
-           }
+       if (response.guestId && guestsList.length > 0) {
+         var foundGuest = guestsList.find(function(g) {
+           return String(g.Guest_ID).trim() === String(response.guestId).trim();
+         });
+         if (foundGuest && foundGuest.Full_Name) {
+           primaryName = foundGuest.Full_Name;
          }
        }
 
@@ -546,23 +558,39 @@ function sendConfirmationEmail(email, name, payload) {
        }
     });
 
-    // 4. Build the Summary HTML
+    // 4. Build the Summary HTML & collect attachments for attending events
     var summaryHtml = "<div style='background-color: #f8f9fa; padding: 15px 20px; border-radius: 6px; margin: 20px 0;'>";
     summaryHtml += "<h3 style='margin-top: 0; color: #2c3e50; font-size: 1.1em;'>Your Response Summary:</h3>";
     
     for (var eventId in eventBreakdown) {
-       var eTitle = eventMap[eventId] || eventId;
+       var evtData = eventDetailsMap[eventId] || { title: eventId };
        
        summaryHtml += "<div style='margin-bottom: 15px;'>";
-       summaryHtml += "<h4 style='margin: 0 0 5px 0; color: #4a90e2; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px;'>" + eTitle + "</h4>";
+       summaryHtml += "<h4 style='margin: 0 0 5px 0; color: #4a90e2; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px;'>" + evtData.title + "</h4>";
        summaryHtml += "<ul style='margin: 5px 0 0 0; padding-left: 20px; font-size: 0.95em; color: #333;'>";
-       
+
        eventBreakdown[eventId].forEach(function(person) {
          var statusColor = person.status === "Attending" ? "#28a745" : "#dc3545";
          summaryHtml += "<li style='margin-bottom: 4px;'><strong>" + person.name + ":</strong> <span style='color: " + statusColor + "; font-weight: bold;'>" + person.status + "</span></li>";
        });
-       
-       summaryHtml += "</ul></div>";
+
+       summaryHtml += "</ul>";
+
+       // Add Calendar Link and Attachment Note if at least one person is attending
+       var isAnyoneAttending = eventBreakdown[eventId].some(function(p) { return p.status === "Attending"; });
+       if (evtData.gCalUrl && isAnyoneAttending) {
+         summaryHtml += "<div style='margin-top: 8px; font-size: 0.85em; color: #555;'>";
+         summaryHtml += "<a href='" + evtData.gCalUrl + "' target='_blank' style='display: inline-block; background: #4285F4; color: white; padding: 5px 12px; border-radius: 4px; text-decoration: none; font-weight: bold; margin-right: 8px;'>+ Google Calendar</a>";
+         summaryHtml += "<span>(For Apple Calendar, Outlook, or mobile, open the attached <strong>.ics</strong> file)</span>";
+         summaryHtml += "</div>";
+
+         // Collect .ics attachment for attending events
+         if (evtData.attachment) {
+           emailAttachments.push(evtData.attachment);
+         }
+       }
+
+       summaryHtml += "</div>";
     }
     
     if (payload.notes) {
@@ -581,10 +609,12 @@ function sendConfirmationEmail(email, name, payload) {
         "<p>" + emailSignature + "</p>" +
       "</div>";
 
+    // 6. Send Email with attachments
     MailApp.sendEmail({
       to: email,
       subject: subject,
-      htmlBody: htmlBody
+      htmlBody: htmlBody,
+      attachments: emailAttachments
     });
     Logger.log("Confirmation email sent to " + email);
   } catch (err) {
@@ -884,4 +914,74 @@ function recordInvitationOpen(groupId, ss) {
       }
     }
   }
+}
+
+/**
+ * Generates a direct "Add to Google Calendar" URL.
+ */
+function createGoogleCalendarUrl(title, details, location, dateTimeStr, durationMinutes) {
+  var startDate = new Date(dateTimeStr);
+  if (isNaN(startDate.getTime())) return "";
+  
+  var duration = durationMinutes ? parseInt(durationMinutes, 10) : 120; // Default 2 hours
+  var endDate = new Date(startDate.getTime() + (duration * 60 * 1000));
+  
+  function formatDate(d) {
+    return d.toISOString().replace(/-|:|\.\d\d\d/g, "");
+  }
+  
+  var dates = formatDate(startDate) + "/" + formatDate(endDate);
+  
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+    "&text=" + encodeURIComponent(title) +
+    "&dates=" + dates +
+    "&details=" + encodeURIComponent(details || "") +
+    "&location=" + encodeURIComponent(location || "");
+}
+
+/**
+ * Generates iCal (.ics) data for Outlook / Apple Calendar / Mobile devices.
+ */
+function createIcsData(title, details, location, dateTimeStr, durationMinutes) {
+  var startDate = new Date(dateTimeStr);
+  if (isNaN(startDate.getTime())) return "";
+  
+  var duration = durationMinutes ? parseInt(durationMinutes, 10) : 120;
+  var endDate = new Date(startDate.getTime() + (duration * 60 * 1000));
+  
+  function formatDate(d) {
+    return d.toISOString().replace(/-|:|\.\d\d\d/g, "");
+  }
+  
+  var icsContent = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//RSVP App Calendar Event//EN",
+    "BEGIN:VEVENT",
+    "SUMMARY:" + title,
+    "DESCRIPTION:" + (details || "").replace(/\n/g, "\\n"),
+    "LOCATION:" + location,
+    "DTSTART:" + formatDate(startDate),
+    "DTEND:" + formatDate(endDate),
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ].join("\r\n");
+
+  return icsContent;
+}
+
+/**
+ * Generates iCal (.ics) URI
+ */
+function createIcsDataUri(title, details, location, dateTimeStr, durationMinutes) {
+  var icsContent = createIcsData(title, details, location, dateTimeStr, durationMinutes);
+  return "data:text/calendar;charset=utf8," + encodeURI(icsContent);
+}
+
+/**
+ * Generates iCal (.ics) file
+ */
+function createIcsFile(title, details, location, dateTimeStr, durationMinutes) {
+  var icsContent = createIcsData(title, details, location, dateTimeStr, durationMinutes);
+  return Utilities.newBlob(icsContent, "text/calendar", (title ? title : "event") + ".ics");
 }
